@@ -253,6 +253,7 @@ export const categoriesAPI = {
       requireAuth: true,
     });
   }
+
 };
 
 // Comments API methods
@@ -274,7 +275,12 @@ export const commentsAPI = {
       requireAuth: false,
     });
   },
-  
+  getPostByCategoryId: async (categoryId: string) => { 
+    return fetchAPI(`/api/posts/category/${categoryId}`, {
+      requireAuth: false,
+    });
+  },
+
   createComment: async (commentData: any) => {
     return fetchAPI('/api/comments', {
       method: 'POST',
