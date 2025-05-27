@@ -1,6 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Editor } from '@tinymce/tinymce-react';
+import MDEditor from '@uiw/react-md-editor';
+import '@uiw/react-md-editor/markdown-editor.css';
+import '@uiw/react-markdown-preview/markdown.css';
 import { 
   Save, 
   Image, 
@@ -40,7 +42,7 @@ export function PostEditorPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const editorRef = useRef<any>(null);
+  // Remove editorRef as we'll use state for markdown content
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -73,11 +75,7 @@ export function PostEditorPage() {
             category: postData.category?._id || '',
             status: postData.status
           });
-          
-          // If editor is loaded, set content
-          if (editorRef.current) {
-            editorRef.current.setContent(postData.content);
-          }
+          // Content will be set via formData state
         }
       } catch (error) {
         toast({
@@ -166,18 +164,21 @@ export function PostEditorPage() {
   };
   
   const savePost = async (status: boolean) => {
-    if (!editorRef.current) return;
+    if (!formData.content.trim()) {
+      toast({
+        title: "Lỗi",
+        description: "Vui lòng nhập nội dung bài viết",
+        variant: "destructive"
+      });
+      return;
+    }
     
     try {
       setLoading(true);
       
-      // Get content from editor
-      const content = editorRef.current.getContent();
-      
       // Prepare post data
       const postData = {
         ...formData,
-        content,
         status
       };
       
@@ -263,26 +264,13 @@ export function PostEditorPage() {
               
               <div>
                 <Label className="text-base">Nội dung bài viết</Label>
-                <div className="border rounded-md overflow-hidden mt-2">
-                  <Editor
-                    apiKey="rqunai39oowzw2118eov6ylk83x0fgsyqoh4g4qzhee7stv2" // Replace with your API key
-                    onInit={(_evt, editor) => editorRef.current = editor}
-                    initialValue={formData.content}
-                    init={{
-                      height: 600,
-                      menubar: false,
-                      plugins: [
-                        'advlist', 'autolink', 'lists', 'link', 'image', 'charmap',
-                        'preview', 'anchor', 'searchreplace', 'visualblocks', 'code',
-                        'fullscreen', 'insertdatetime', 'media', 'table', 'code',
-                        'help', 'wordcount'
-                      ],
-                      toolbar: 'undo redo | blocks | ' +
-                        'bold italic forecolor | alignleft aligncenter ' +
-                        'alignright alignjustify | bullist numlist outdent indent | ' +
-                        'removeformat | link image | code',
-                      content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:16px }'
-                    }}
+                <div className="mt-2">
+                  <MDEditor
+                    value={formData.content}
+                    onChange={(value) => setFormData(prev => ({ ...prev, content: value || '' }))}
+                    height={600}
+                    data-color-mode="light"
+                    preview="edit"
                   />
                 </div>
               </div>

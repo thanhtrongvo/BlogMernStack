@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AdminDashboard } from '../features/admin';
 import { AuthRoutes, AuthGuard, ProfilePage } from '../features/auth';
 import { BlogRoutes } from '../features/blog';
+import ComprehensiveTest from "../comprehensive-test";
 import { 
   Toaster, 
   Header, 
@@ -44,6 +45,7 @@ function App() {
             } 
           />
           <Route path="/auth/*" element={<AuthRoutes />} />
+          <Route path="/test-markdown" element={<ComprehensiveTest />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/blog/*" element={<BlogRoutes />} />
           <Route path="/*" element={<FrontendLayout />} />

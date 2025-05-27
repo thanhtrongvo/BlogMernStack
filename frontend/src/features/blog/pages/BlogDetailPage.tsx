@@ -1,21 +1,20 @@
-import { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useState, useEffect, useRef } from "react";
+import { useParams } from "react-router-dom";
 import { useToast } from "../../../shared/components/ui/use-toast";
-import { useAuth } from '../../../shared/contexts/AuthContext';
-import { Avatar } from '../../../shared/components/ui/avatar';
-import { Button } from '../../../shared/components/ui/button';
-import { Textarea } from '../../../shared/components/ui/textarea';
-import { Card } from '../../../shared/components/ui/card';
-import { formatDistanceToNow } from 'date-fns';
-import { postsAPI, commentsAPI } from '../../../shared/services/api';
-import Header from '../../../shared/components/Header';
-import Footer from '../../../shared/components/Footer';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vs } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { convertHtmlToMarkdown } from '../../../shared/services/markdownUtils';
-import './BlogDetail.css';
+import { useAuth } from "../../../shared/contexts/AuthContext";
+import { Avatar } from "../../../shared/components/ui/avatar";
+import { Button } from "../../../shared/components/ui/button";
+import { Textarea } from "../../../shared/components/ui/textarea";
+import { Card } from "../../../shared/components/ui/card";
+import { formatDistanceToNow } from "date-fns";
+import { postsAPI, commentsAPI } from "../../../shared/services/api";
+import Header from "../../../shared/components/Header";
+import Footer from "../../../shared/components/Footer";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { vs } from "react-syntax-highlighter/dist/esm/styles/prism";
+import "./BlogDetail.css";
 
 // Temporary types (replace with your actual types)
 interface Author {
@@ -42,12 +41,12 @@ interface BlogPost {
   comments: Comment[];
 }
 
-// Interface for heading structure used in table of contents
-interface Heading {
-  id: string;
-  text: string;
-  level: number;
-}
+// Interface for heading structure used in table of contents (removed)
+// interface Heading {
+//   id: string;
+//   text: string;
+//   level: number;
+// }
 
 // Interface for latest posts
 interface LatestPost {
@@ -64,27 +63,45 @@ export default function BlogDetailPage() {
   const [post, setPost] = useState<BlogPost | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasLiked, setHasLiked] = useState(false);
-  const [comment, setComment] = useState('');
+  const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [headings, setHeadings] = useState<Heading[]>([]);
+  // const [headings, setHeadings] = useState<Heading[]>([]); // Removed table of contents
   const [latestPosts, setLatestPosts] = useState<LatestPost[]>([]);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  // Extract headings from markdown content
-  const extractHeadings = (markdown: string): Heading[] => {
-    const headingRegex = /^(#{1,6})\s+(.+)$/gm;
-    const extracted: Heading[] = [];
-    let match;
+  // Extract headings from markdown or HTML content (removed for table of contents)
+  // const extractHeadings = (content: string): Heading[] => {
+  //   const extracted: Heading[] = [];
+  //
+  //   // Check if content is HTML or Markdown
+  //   const isHtml = /<[^>]*>/g.test(content);
+  //
+  //   if (isHtml) {
+  //     // Extract headings from HTML
+  //     const headingRegex = /<h([1-6])[^>]*>(.*?)<\/h[1-6]>/gi;
+  //     let match;
+  //
+  //     while ((match = headingRegex.exec(content)) !== null) {
+  //       const level = parseInt(match[1]);
+  //       const text = match[2].replace(/<[^>]*>/g, '').trim(); // Remove any nested HTML tags
+  //       const id = text.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-');
+  //       extracted.push({ level, text, id });
+  //     }
+  //   } else {
+  //     // Extract headings from Markdown
+  //     const headingRegex = /^(#{1,6})\s+(.+)$/gm;
+  //     let match;
 
-    while ((match = headingRegex.exec(markdown)) !== null) {
-      const level = match[1].length;
-      const text = match[2].trim();
-      const id = text.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-');
-      extracted.push({ level, text, id });
-    }
+  //     while ((match = headingRegex.exec(content)) !== null) {
+  //       const level = match[1].length;
+  //       const text = match[2].trim();
+  //       const id = text.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-');
+  //       extracted.push({ level, text, id });
+  //     }
+  //   }
 
-    return extracted;
-  };
+  //   return extracted;
+  // };
 
   // Fetch blog post
   useEffect(() => {
@@ -92,38 +109,51 @@ export default function BlogDetailPage() {
       setIsLoading(true);
       try {
         if (!id) return;
-        
+
         // Get post details from API
         const postData: any = await postsAPI.getPostById(id);
-        
+        console.log("Fetched post data:", postData); // Debug log
+
         // Track post view
         await postsAPI.trackPostView(id);
-        
+
         // Transform API response to match BlogPost structure
+        const processedContent = postData.content || "";
+        console.log("Processed content:", processedContent); // Debug log
+
         setPost({
           _id: postData._id,
           title: postData.title,
-          content: postData.content || '', // Ensure content is a string
+          content: processedContent, // Ensure content is a string
           image: postData.image,
           author: {
-            _id: postData.author?._id || 'unknown',
-            name: typeof postData.author === 'object' ? postData.author.name : postData.author,
-            avatar: typeof postData.author === 'object' && postData.author.avatar ? postData.author.avatar : 'https://github.com/shadcn.png'
+            _id: postData.author?._id || "unknown",
+            name:
+              typeof postData.author === "object"
+                ? postData.author.name
+                : postData.author,
+            avatar:
+              typeof postData.author === "object" && postData.author.avatar
+                ? postData.author.avatar
+                : "https://github.com/shadcn.png",
           },
           createdAt: postData.createdAt,
           likes: postData.likes || 0,
-          comments: []
+          comments: [],
         });
 
-        // Extract headings from content for table of contents
-        const markdownContent = convertHtmlToMarkdown(postData.content || '');
-        setHeadings(extractHeadings(markdownContent));
+        // Extract headings from content for table of contents (removed)
+        // if (processedContent) {
+        //   setHeadings(extractHeadings(processedContent));
+        // }
 
         // Get comments for this post
         try {
-          const commentsData = await commentsAPI.getCommentsByPostId(id) as any[];
+          const commentsData = (await commentsAPI.getCommentsByPostId(
+            id
+          )) as any[];
           if (commentsData && commentsData.length > 0) {
-            setPost(prev => {
+            setPost((prev) => {
               if (!prev) return null;
               return {
                 ...prev,
@@ -132,24 +162,30 @@ export default function BlogDetailPage() {
                   content: comment.content,
                   author: {
                     _id: comment.author?._id || comment._id,
-                    name: typeof comment.author === 'object' ? comment.author.name : comment.author,
-                    avatar: typeof comment.author === 'object' && comment.author.avatar ? comment.author.avatar : 'https://github.com/shadcn.png'
+                    name:
+                      typeof comment.author === "object"
+                        ? comment.author.name
+                        : comment.author,
+                    avatar:
+                      typeof comment.author === "object" &&
+                      comment.author.avatar
+                        ? comment.author.avatar
+                        : "https://github.com/shadcn.png",
                   },
-                  createdAt: comment.createdAt
-                }))
+                  createdAt: comment.createdAt,
+                })),
               };
             });
           }
         } catch (error) {
-          console.error('Error fetching comments:', error);
+          console.error("Error fetching comments:", error);
         }
-        
       } catch (error) {
-        console.error('Error fetching post:', error);
+        console.error("Error fetching post:", error);
         toast({
           title: "Error",
           description: "Failed to load blog post. Please try again later.",
-          variant: "destructive"
+          variant: "destructive",
         });
       } finally {
         setIsLoading(false);
@@ -165,11 +201,11 @@ export default function BlogDetailPage() {
           _id: post._id,
           title: post.title,
           image: post.image,
-          createdAt: post.createdAt
+          createdAt: post.createdAt,
         }));
         setLatestPosts(latest);
       } catch (error) {
-        console.error('Error fetching latest posts:', error);
+        console.error("Error fetching latest posts:", error);
       }
     };
 
@@ -185,7 +221,7 @@ export default function BlogDetailPage() {
       toast({
         title: "Authentication required",
         description: "Please log in to like this post.",
-        variant: "default"
+        variant: "default",
       });
       return;
     }
@@ -193,25 +229,29 @@ export default function BlogDetailPage() {
     try {
       // Replace with your actual API call when like endpoint is available
       // await fetch(`/api/posts/${id}/like`, { method: 'POST' });
-      
+
       // Optimistic update
-      setPost(prev => prev ? {
-        ...prev,
-        likes: hasLiked ? prev.likes - 1 : prev.likes + 1
-      } : null);
-      
+      setPost((prev) =>
+        prev
+          ? {
+              ...prev,
+              likes: hasLiked ? prev.likes - 1 : prev.likes + 1,
+            }
+          : null
+      );
+
       setHasLiked(!hasLiked);
-      
+
       toast({
         title: hasLiked ? "Like removed" : "Post liked",
-        variant: "default"
+        variant: "default",
       });
     } catch (error) {
-      console.error('Error liking post:', error);
+      console.error("Error liking post:", error);
       toast({
         title: "Error",
         description: "Failed to like post. Please try again.",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -220,69 +260,68 @@ export default function BlogDetailPage() {
   const handleCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!comment.trim()) return;
-    
+
     if (!isAuthenticated) {
       toast({
         title: "Authentication required",
         description: "Please log in to comment.",
-        variant: "default"
+        variant: "default",
       });
       return;
     }
 
     setIsSubmitting(true);
-    
+
     try {
       // Create new comment via API
       const commentData = {
         postId: id,
-        content: comment
+        content: comment,
       };
-      
+
       const newCommentData: any = await commentsAPI.createComment(commentData);
-      
+
       // Add the new comment to the post's comments
       const newComment = {
         _id: newCommentData._id,
         content: newCommentData.content,
         author: {
-          _id: user?.id || 'current-user',
-          name: user?.username || 'Current User',
-          avatar: 'https://github.com/shadcn.png'
+          _id: user?.id || "current-user",
+          name: user?.username || "Current User",
+          avatar: "https://github.com/shadcn.png",
         },
-        createdAt: newCommentData.createdAt || new Date().toISOString()
+        createdAt: newCommentData.createdAt || new Date().toISOString(),
       };
-      
+
       // Update post with new comment
-      setPost(prev => prev ? {
-        ...prev,
-        comments: [newComment, ...prev.comments]
-      } : null);
-      
-      setComment('');
+      setPost((prev) =>
+        prev
+          ? {
+              ...prev,
+              comments: [newComment, ...prev.comments],
+            }
+          : null
+      );
+
+      setComment("");
       toast({
         title: "Comment added",
-        variant: "default"
+        variant: "default",
       });
     } catch (error) {
-      console.error('Error submitting comment:', error);
+      console.error("Error submitting comment:", error);
       toast({
         title: "Error",
         description: "Failed to submit comment. Please try again.",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Extract headings for table of contents
-  useEffect(() => {
-    if (post) {
-      const extractedHeadings = extractHeadings(post.content);
-      setHeadings(extractedHeadings);
-    }
-  }, [post]);
+  // Extract headings for table of contents - remove duplicate useEffect
+  // This is now handled in the fetchPost useEffect
 
   if (isLoading) {
     return (
@@ -311,8 +350,13 @@ export default function BlogDetailPage() {
         <main className="flex-grow">
           <div className="container mx-auto px-4 py-8">
             <div className="text-center py-12">
-              <h2 className="text-2xl font-bold text-gray-800">Post not found</h2>
-              <p className="text-gray-600 mt-2">The blog post you're looking for doesn't exist or has been removed.</p>
+              <h2 className="text-2xl font-bold text-gray-800">
+                Post not found
+              </h2>
+              <p className="text-gray-600 mt-2">
+                The blog post you're looking for doesn't exist or has been
+                removed.
+              </p>
             </div>
           </div>
         </main>
@@ -321,45 +365,50 @@ export default function BlogDetailPage() {
     );
   }
 
-  // Component for table of contents
-  const TableOfContents = () => {
-    if (headings.length === 0) return null;
-    
-    return (
-      <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm mb-6 table-of-contents">
-        <h4 className="text-lg font-semibold mb-3 text-gray-900">Mục lục</h4>
-        <ul className="space-y-2">
-          {headings.map((heading) => (
-            <li 
-              key={heading.id}
-              style={{ marginLeft: `${(heading.level - 1) * 12}px` }}
-            >
-              <a 
-                href={`#${heading.id}`} 
-                className="text-blue-600 hover:text-blue-800 text-sm transition-colors"
-              >
-                {heading.text}
-              </a>
-            </li>
-          ))}
-        </ul>
-      </div>
-    );
-  };
+  // Component for table of contents (removed)
+  // const TableOfContents = () => {
+  //   if (headings.length === 0) return null;
+  //
+  //   return (
+  //     <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm mb-6 table-of-contents">
+  //       <h4 className="text-lg font-semibold mb-3 text-gray-900">Mục lục</h4>
+  //       <ul className="space-y-2">
+  //         {headings.map((heading) => (
+  //           <li
+  //             key={heading.id}
+  //             style={{ marginLeft: `${(heading.level - 1) * 12}px` }}
+  //           >
+  //             <a
+  //               href={`#${heading.id}`}
+  //               className="text-blue-600 hover:text-blue-800 text-sm transition-colors"
+  //             >
+  //               {heading.text}
+  //             </a>
+  //           </li>
+  //         ))}
+  //       </ul>
+  //     </div>
+  //   );
+  // };
 
   // Component for latest posts sidebar
   const LatestPostsSidebar = () => {
     return (
       <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-        <h4 className="text-lg font-semibold mb-3 text-gray-900">Bài viết mới nhất</h4>
+        <h4 className="text-lg font-semibold mb-3 text-gray-900">
+          Bài viết mới nhất
+        </h4>
         <ul className="space-y-4">
-          {latestPosts.map(post => (
-            <li key={post._id} className="border-b border-gray-100 pb-3 last:border-0 last:pb-0">
+          {latestPosts.map((post) => (
+            <li
+              key={post._id}
+              className="border-b border-gray-100 pb-3 last:border-0 last:pb-0"
+            >
               <a href={`/blog/${post._id}`} className="group">
                 {post.image && (
-                  <img 
-                    src={post.image} 
-                    alt={post.title} 
+                  <img
+                    src={post.image}
+                    alt={post.title}
                     className="w-full h-24 object-cover rounded-md mb-2"
                   />
                 )}
@@ -367,10 +416,10 @@ export default function BlogDetailPage() {
                   {post.title}
                 </h5>
                 <p className="text-xs text-gray-500 mt-1">
-                  {new Date(post.createdAt).toLocaleDateString('vi-VN', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
+                  {new Date(post.createdAt).toLocaleDateString("vi-VN", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
                   })}
                 </p>
               </a>
@@ -391,20 +440,29 @@ export default function BlogDetailPage() {
             <div className="blog-main-content">
               {/* Blog Header */}
               <div className="mb-8">
-                <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">{post.title}</h1>
-                
+                <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                  {post.title}
+                </h1>
+
                 {/* Author and Date */}
                 <div className="flex items-center mb-6">
                   <Avatar className="h-10 w-10 mr-3">
-                    <img src={post.author.avatar || 'https://github.com/shadcn.png'} alt={post.author.name} />
+                    <img
+                      src={
+                        post.author.avatar || "https://github.com/shadcn.png"
+                      }
+                      alt={post.author.name}
+                    />
                   </Avatar>
                   <div>
-                    <p className="font-medium text-gray-900">{post.author.name}</p>
+                    <p className="font-medium text-gray-900">
+                      {post.author.name}
+                    </p>
                     <p className="text-sm text-gray-500">
-                      {new Date(post.createdAt).toLocaleDateString('vi-VN', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
+                      {new Date(post.createdAt).toLocaleDateString("vi-VN", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
                       })}
                     </p>
                   </div>
@@ -413,51 +471,146 @@ export default function BlogDetailPage() {
 
               {/* Featured Image */}
               <div className="mb-8 rounded-lg overflow-hidden">
-                <img 
-                  src={post.image} 
+                <img
+                  src={post.image}
                   alt={post.title}
                   className="w-full h-auto object-cover"
                 />
               </div>
 
               {/* Blog Content */}
-              <div className="prose prose-lg blog-content mb-8" ref={contentRef}>
-                <ReactMarkdown 
-                  remarkPlugins={[remarkGfm]}
-                  components={{
-                    h1: ({children, ...props}) => <h1 id={children?.toString().toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-')} {...props}>{children}</h1>,
-                    h2: ({children, ...props}) => <h2 id={children?.toString().toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-')} {...props}>{children}</h2>,
-                    h3: ({children, ...props}) => <h3 id={children?.toString().toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-')} {...props}>{children}</h3>,
-                    h4: ({children, ...props}) => <h4 id={children?.toString().toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-')} {...props}>{children}</h4>,
-                    h5: ({children, ...props}) => <h5 id={children?.toString().toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-')} {...props}>{children}</h5>,
-                    h6: ({children, ...props}) => <h6 id={children?.toString().toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-')} {...props}>{children}</h6>,
-                    code: ({className, children, ...props}: any) => {
-                      const match = /language-(\w+)/.exec(className || '');
-                      const inline = !match;
-                      return !inline && match ? (
-                        <SyntaxHighlighter
-                          style={vs}
-                          language={match[1]}
-                          PreTag="div"
-                          {...props}
+              <div
+                className="prose prose-lg blog-content mb-8"
+                ref={contentRef}
+              >
+                {post.content ? (
+                  (() => {
+                    // Check if content contains HTML tags
+                    const isHtml = /<[^>]*>/g.test(post.content);
+
+                    if (isHtml) {
+                      // If content is HTML (legacy TinyMCE content), render it directly
+                      return (
+                        <div
+                          dangerouslySetInnerHTML={{ __html: post.content }}
+                          className="legacy-html-content"
+                        />
+                      );
+                    } else {
+                      // If content is Markdown, use ReactMarkdown
+                      return (
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                            h1: ({ children, ...props }) => {
+                              const text = children?.toString() || "";
+                              const id = text
+                                .toLowerCase()
+                                .replace(/[^\w\s-]/g, "")
+                                .replace(/\s+/g, "-");
+                              return (
+                                <h1 id={id} {...props}>
+                                  {children}
+                                </h1>
+                              );
+                            },
+                            h2: ({ children, ...props }) => {
+                              const text = children?.toString() || "";
+                              const id = text
+                                .toLowerCase()
+                                .replace(/[^\w\s-]/g, "")
+                                .replace(/\s+/g, "-");
+                              return (
+                                <h2 id={id} {...props}>
+                                  {children}
+                                </h2>
+                              );
+                            },
+                            h3: ({ children, ...props }) => {
+                              const text = children?.toString() || "";
+                              const id = text
+                                .toLowerCase()
+                                .replace(/[^\w\s-]/g, "")
+                                .replace(/\s+/g, "-");
+                              return (
+                                <h3 id={id} {...props}>
+                                  {children}
+                                </h3>
+                              );
+                            },
+                            h4: ({ children, ...props }) => {
+                              const text = children?.toString() || "";
+                              const id = text
+                                .toLowerCase()
+                                .replace(/[^\w\s-]/g, "")
+                                .replace(/\s+/g, "-");
+                              return (
+                                <h4 id={id} {...props}>
+                                  {children}
+                                </h4>
+                              );
+                            },
+                            h5: ({ children, ...props }) => {
+                              const text = children?.toString() || "";
+                              const id = text
+                                .toLowerCase()
+                                .replace(/[^\w\s-]/g, "")
+                                .replace(/\s+/g, "-");
+                              return (
+                                <h5 id={id} {...props}>
+                                  {children}
+                                </h5>
+                              );
+                            },
+                            h6: ({ children, ...props }) => {
+                              const text = children?.toString() || "";
+                              const id = text
+                                .toLowerCase()
+                                .replace(/[^\w\s-]/g, "")
+                                .replace(/\s+/g, "-");
+                              return (
+                                <h6 id={id} {...props}>
+                                  {children}
+                                </h6>
+                              );
+                            },
+                            code: ({ className, children, ...props }: any) => {
+                              const match = /language-(\w+)/.exec(
+                                className || ""
+                              );
+                              const inline = !match;
+                              return !inline && match ? (
+                                <SyntaxHighlighter
+                                  style={vs}
+                                  language={match[1]}
+                                  PreTag="div"
+                                  {...props}
+                                >
+                                  {String(children).replace(/\n$/, "")}
+                                </SyntaxHighlighter>
+                              ) : (
+                                <code className={className} {...props}>
+                                  {children}
+                                </code>
+                              );
+                            },
+                          }}
                         >
-                          {String(children).replace(/\n$/, '')}
-                        </SyntaxHighlighter>
-                      ) : (
-                        <code className={className} {...props}>
-                          {children}
-                        </code>
-                      )
+                          {post.content}
+                        </ReactMarkdown>
+                      );
                     }
-                  }}
-                >
-                  {convertHtmlToMarkdown(post.content)}
-                </ReactMarkdown>
+                  })()
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <p>Nội dung bài viết không khả dụng</p>
+                  </div>
+                )}
               </div>
 
               {/* Like Button */}
               <div className="border-t border-b py-4 my-8">
-                <Button 
+                <Button
                   onClick={handleLike}
                   variant={hasLiked ? "default" : "outline"}
                   className="flex items-center gap-2"
@@ -472,46 +625,68 @@ export default function BlogDetailPage() {
 
               {/* Comments Section */}
               <div className="mt-12">
-                <h3 className="text-xl font-bold mb-6">Comments ({post.comments.length})</h3>
-                
+                <h3 className="text-xl font-bold mb-6">
+                  Comments ({post.comments.length})
+                </h3>
+
                 {/* Comment Form */}
                 {isAuthenticated ? (
                   <form onSubmit={handleCommentSubmit} className="mb-8">
                     <Textarea
                       value={comment}
-                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setComment(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                        setComment(e.target.value)
+                      }
                       placeholder="Share your thoughts..."
                       className="mb-3"
                       rows={4}
                     />
-                    <Button 
+                    <Button
                       type="submit"
                       disabled={isSubmitting || !comment.trim()}
                     >
-                      {isSubmitting ? 'Posting...' : 'Post Comment'}
+                      {isSubmitting ? "Posting..." : "Post Comment"}
                     </Button>
                   </form>
                 ) : (
                   <Card className="p-4 mb-8 bg-gray-50 border border-gray-200">
                     <p className="text-center text-gray-700">
-                      Vui lòng <a href="/auth/login" className="text-blue-600 hover:underline">đăng nhập</a> để bình luận
+                      Vui lòng{" "}
+                      <a
+                        href="/auth/login"
+                        className="text-blue-600 hover:underline"
+                      >
+                        đăng nhập
+                      </a>{" "}
+                      để bình luận
                     </p>
                   </Card>
                 )}
-                
+
                 {/* Comments List */}
                 <div className="space-y-6">
-                  {post.comments.map(comment => (
+                  {post.comments.map((comment) => (
                     <div key={comment._id} className="border-b pb-6">
                       <div className="flex items-start gap-3">
                         <Avatar className="h-10 w-10">
-                          <img src={comment.author.avatar || 'https://github.com/shadcn.png'} alt={comment.author.name} />
+                          <img
+                            src={
+                              comment.author.avatar ||
+                              "https://github.com/shadcn.png"
+                            }
+                            alt={comment.author.name}
+                          />
                         </Avatar>
                         <div className="flex-1">
                           <div className="flex justify-between items-center mb-1">
-                            <h4 className="font-medium text-gray-900">{comment.author.name}</h4>
+                            <h4 className="font-medium text-gray-900">
+                              {comment.author.name}
+                            </h4>
                             <span className="text-sm text-gray-500">
-                              {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
+                              {formatDistanceToNow(
+                                new Date(comment.createdAt),
+                                { addSuffix: true }
+                              )}
                             </span>
                           </div>
                           <p className="text-gray-700">{comment.content}</p>
@@ -519,20 +694,21 @@ export default function BlogDetailPage() {
                       </div>
                     </div>
                   ))}
-                  
+
                   {post.comments.length === 0 && (
-                    <p className="text-center text-gray-500 py-4">No comments yet. Be the first to comment!</p>
+                    <p className="text-center text-gray-500 py-4">
+                      No comments yet. Be the first to comment!
+                    </p>
                   )}
                 </div>
               </div>
             </div>
-            
+
             {/* Sidebar */}
             <div className="blog-sidebar">
               <div className="blog-sidebar-sticky space-y-6">
-                {/* Table of Contents */}
-                <TableOfContents />
-                
+                {/* Table of Contents removed */}
+
                 {/* Latest Posts */}
                 <LatestPostsSidebar />
               </div>

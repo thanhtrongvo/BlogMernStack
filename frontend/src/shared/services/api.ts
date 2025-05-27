@@ -174,6 +174,11 @@ export const postsAPI = {
       requireAuth: false,
     });
   },
+  getPostsByCategory: async (categoryId: string) => {
+    return fetchAPI(`/api/posts/category/${categoryId}`, {
+      requireAuth: false,
+    });
+  },
   
   getPostById: async (id: string) => {
     return fetchAPI(`/api/posts/${id}`, {

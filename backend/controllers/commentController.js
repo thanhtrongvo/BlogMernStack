@@ -136,3 +136,35 @@ exports.getCommentsByAuthor = async (req, res) => {
         res.status(500).json({ message: 'Error fetching comments' });
     }
 }
+
+exports.approveComment = async (req, res) => {
+    try {
+        const comment = await Comment.findByIdAndUpdate(
+            req.params.id, 
+            { status: true }, 
+            { new: true }
+        );
+        if (!comment) {
+            return res.status(404).json({ message: 'Comment not found' });
+        }
+        res.status(200).json({ message: 'Comment approved successfully', comment });
+    } catch (error) {
+        res.status(500).json({ message: 'Error approving comment' });
+    }
+}
+
+exports.rejectComment = async (req, res) => {
+    try {
+        const comment = await Comment.findByIdAndUpdate(
+            req.params.id, 
+            { status: false }, 
+            { new: true }
+        );
+        if (!comment) {
+            return res.status(404).json({ message: 'Comment not found' });
+        }
+        res.status(200).json({ message: 'Comment rejected successfully', comment });
+    } catch (error) {
+        res.status(500).json({ message: 'Error rejecting comment' });
+    }
+}

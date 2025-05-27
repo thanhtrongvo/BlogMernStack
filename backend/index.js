@@ -26,11 +26,11 @@ app.use(morgan('dev'));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 // 3) Public routes (register/login)
 app.use('/api/auth', authRoutes);
+app.use('/api/comments', require('./routes/comment')); // Public comment reading
 
 
 // 4) Protected routes - áp dụng middleware auth chỉ cho routes bảo vệ
 app.use('/api/posts',require('./routes/post'));
-app.use('/api/comments', auth, require('./routes/comment'));
 app.use('/api/dashboard', auth, dashboardRoutes);
 app.use('/api/users', auth, require('./routes/user'));
 app.use('/api/categories', require('./routes/category'));
