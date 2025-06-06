@@ -3,8 +3,6 @@ export interface User {
   id: string;
   email: string;
   username: string;
-  firstName?: string;
-  lastName?: string;
   avatar?: string;
   role: 'admin' | 'user';
   isVerified: boolean;
@@ -79,6 +77,55 @@ export interface AuthTokens {
   refreshToken: string;
 }
 
+// API Response types that match backend MongoDB format
+export interface ApiPost {
+  _id: string;
+  title: string;
+  content: string;
+  image?: string;
+  author: string | {
+    _id: string;
+    name: string;
+    email?: string;
+  };
+  category: {
+    _id: string;
+    name: string;
+    description?: string;
+  };
+  status: boolean; // true = published, false = draft
+  views: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ApiComment {
+  _id: string;
+  content: string;
+  author: {
+    _id: string;
+    name: string;
+    email?: string;
+  };
+  postId: string | {
+    _id: string;
+    title: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ApiCategory {
+  _id: string;
+  name: string;
+  description?: string;
+  status?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  postCount?: number;
+  color?: string;
+}
+
 // API Response types
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -105,13 +152,13 @@ export interface FormError {
 
 // Dashboard types
 export interface DashboardStats {
-  totalPosts: number;
-  totalUsers: number;
-  totalComments: number;
-  totalCategories: number;
-  recentPosts: Post[];
-  popularPosts: Post[];
-  recentComments: Comment[];
+  stats: {
+    postCount: number;
+    userCount: number;
+    commentCount: number;
+    totalViews: number;
+  };
+  updatedAt: string;
 }
 
 // UI types

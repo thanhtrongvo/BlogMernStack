@@ -11,7 +11,8 @@ const CommentSchema = new mongoose.Schema({
         required: true,
     },
     author: {
-        type: String,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
         required: true,
     },
     createdAt: {    
@@ -21,10 +22,6 @@ const CommentSchema = new mongoose.Schema({
     updatedAt: {
         type: Date,
         default: Date.now,
-    },
-    status: {
-        type: Boolean,
-        default: true,
     },
 });
 CommentSchema.pre('save', function(next) {

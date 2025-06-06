@@ -17,17 +17,7 @@ import { Label } from '@/shared/components/ui/label';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { useToast } from '@/shared/components/ui/use-toast';
 import { categoriesAPI } from '@/shared/services/api';
-
-// Define Category interface
-interface Category {
-  _id: string;
-  name: string;
-  description: string;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-  postCount?: number; // This may be calculated on the client or provided by the API
-}
+import type { ApiCategory } from '@/shared/types';
 
 // Category Form State
 interface CategoryFormData {
@@ -36,7 +26,7 @@ interface CategoryFormData {
 }
 
 export function CategoriesPage() {
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<ApiCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -56,7 +46,7 @@ export function CategoriesPage() {
     try {
       setLoading(true);
       const data = await categoriesAPI.getAllCategories();
-      setCategories(data as Category[]);
+      setCategories(data as ApiCategory[]);
     } catch (error) {
       toast({
         title: "Lỗi",
@@ -146,7 +136,7 @@ export function CategoriesPage() {
     }
   };
 
-  const openEditDialog = (category: Category) => {
+  const openEditDialog = (category: ApiCategory) => {
     setFormData({
       name: category.name,
       description: category.description,
@@ -166,14 +156,14 @@ export function CategoriesPage() {
   // Filter categories based on search term
   const filteredCategories = categories.filter(category => 
     category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    category.description.toLowerCase().includes(searchTerm.toLowerCase())
+    (category.description && category.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   // Table columns definition
   const columns = [
     {
       title: 'Tên danh mục',
-      field: 'name' as keyof Category,
+      field: 'name' as keyof ApiCategory,
       render: (value: any) => (
         <div className="flex items-center gap-3">
           <div className="rounded-full w-4 h-4 bg-primary"></div>
@@ -183,7 +173,7 @@ export function CategoriesPage() {
     },
     {
       title: 'Mô tả',
-      field: 'description' as keyof Category,
+      field: 'description' as keyof ApiCategory,
       render: (value: any) => (
         <div className="max-w-md">
           <p className="text-sm line-clamp-1">{value}</p>
@@ -192,7 +182,7 @@ export function CategoriesPage() {
     },
     {
       title: 'Số bài viết',
-      field: 'postCount' as keyof Category,
+      field: 'postCount' as keyof ApiCategory,
       render: (value: any) => (
         <div className="flex items-center gap-1">
           <FileText className="h-4 w-4 text-muted-foreground" />
@@ -202,7 +192,7 @@ export function CategoriesPage() {
     },
   ];
 
-  const categoryActions = (category: Category) => (
+  const categoryActions = (category: ApiCategory) => (
     <div className="flex items-center gap-2">
       <Button 
         variant="ghost" 

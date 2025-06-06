@@ -20,23 +20,10 @@ import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
 import { useToast } from '@/shared/components/ui/use-toast';
 import { postsAPI } from '@/shared/services/api';
 import { format } from 'date-fns';
-
-// Define post type
-interface Post {
-  _id: string;
-  title: string;
-  author: string;
-  createdAt: string;
-  status: boolean;
-  category: {
-    _id: string;
-    name: string;
-  };
-  views: number;
-}
+import type { ApiPost } from '@/shared/types';
 
 export function PostsPage() {
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [posts, setPosts] = useState<ApiPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('all');
@@ -51,7 +38,7 @@ export function PostsPage() {
     try {
       setLoading(true);
       const data = await postsAPI.getAllPosts();
-      setPosts(data as Post[]);
+      setPosts(data as ApiPost[]);
     } catch (error) {
       toast({
         title: "Lỗi",
@@ -97,8 +84,8 @@ export function PostsPage() {
   
   // Filter posts based on search term and active tab
   const filteredPosts = posts.filter(post => {
-    const matchesSearch = post.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          post.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch =                          post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (typeof post.author === 'string' ? post.author : post.author.name).toLowerCase().includes(searchTerm.toLowerCase()) ||
                           (post.category?.name || '').toLowerCase().includes(searchTerm.toLowerCase());
     
     if (activeTab === 'all') return matchesSearch;
@@ -112,8 +99,8 @@ export function PostsPage() {
   const columns = [
     {
       title: 'Tiêu đề',
-      field: 'title' as keyof Post,
-      render: (value: any, post: Post) => (
+      field: 'title' as keyof ApiPost,
+      render: (value: any, post: ApiPost) => (
         <div className="flex items-start gap-3">
           <div className="bg-gray-100 p-2 rounded">
             <FileText className="h-5 w-5 text-gray-500" />
@@ -127,18 +114,18 @@ export function PostsPage() {
     },
     {
       title: 'Tác giả',
-      field: 'author' as keyof Post,
+      field: 'author' as keyof ApiPost,
     },
     {
       title: 'Ngày đăng',
-      field: 'createdAt' as keyof Post,
+      field: 'createdAt' as keyof ApiPost,
       render: (value: any) => (
         <span>{format(new Date(value), 'dd/MM/yyyy')}</span>
       ),
     },
     {
       title: 'Trạng thái',
-      field: 'status' as keyof Post,
+      field: 'status' as keyof ApiPost,
       render: (value: boolean) => (
         <Badge variant={value ? 'success' : 'outline'}>
           {value ? 'Công khai' : 'Nháp'}
@@ -147,7 +134,7 @@ export function PostsPage() {
     },
     {
       title: 'Lượt xem',
-      field: 'views' as keyof Post,
+      field: 'views' as keyof ApiPost,
       render: (value: any) => (
         <div className="flex items-center">
           <Eye className="h-4 w-4 mr-1 text-muted-foreground" />
@@ -157,7 +144,7 @@ export function PostsPage() {
     },
   ];
 
-  const postActions = (post: Post): ReactNode => (
+  const postActions = (post: ApiPost): ReactNode => (
     <div className="flex items-center gap-2">
       <Button 
         variant="ghost" 

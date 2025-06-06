@@ -2,47 +2,24 @@ import { useState, useEffect } from 'react';
 import { 
   Search, 
   Filter, 
-  Check, 
-  X, 
   Trash, 
   MessageSquare,
-  AlertTriangle,
   Loader2
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { DataTable } from '@/shared/components/ui/data-table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
-import { Badge } from '@/shared/components/ui/badge';
-import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
 import { Avatar, AvatarFallback } from '@/shared/components/ui/avatar';
 import { useToast } from '@/shared/components/ui/use-toast';
 import { commentsAPI } from '@/shared/services/api';
 import { format } from 'date-fns';
-
-// Define Comment interface
-interface Comment {
-  _id: string;
-  content: string;
-  author: {
-    _id: string;
-    username: string;
-    email: string;
-  };
-  postId: {
-    _id: string;
-    title: string;
-  };
-  createdAt: string;
-  status: boolean;
-  isReported?: boolean;
-}
+import { type ApiComment } from '@/shared/types';
 
 export function CommentsPage() {
-  const [comments, setComments] = useState<Comment[]>([]);
+  const [comments, setComments] = useState<ApiComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState('all');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -53,7 +30,7 @@ export function CommentsPage() {
     try {
       setLoading(true);
       const data = await commentsAPI.getAllComments();
-      setComments(data as Comment[]);
+      setComments(data as ApiComment[]);
     } catch (error) {
       toast({
         title: "Lỗi",
@@ -63,42 +40,6 @@ export function CommentsPage() {
       console.error("Error fetching comments:", error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleApproveComment = async (id: string) => {
-    try {
-      await commentsAPI.approveComment(id);
-      toast({
-        title: "Thành công",
-        description: "Bình luận đã được phê duyệt",
-      });
-      fetchComments(); // Refresh the list
-    } catch (error) {
-      toast({
-        title: "Lỗi",
-        description: "Không thể phê duyệt bình luận",
-        variant: "destructive"
-      });
-      console.error("Error approving comment:", error);
-    }
-  };
-
-  const handleRejectComment = async (id: string) => {
-    try {
-      await commentsAPI.rejectComment(id);
-      toast({
-        title: "Thành công",
-        description: "Bình luận đã bị từ chối",
-      });
-      fetchComments(); // Refresh the list
-    } catch (error) {
-      toast({
-        title: "Lỗi",
-        description: "Không thể từ chối bình luận",
-        variant: "destructive"
-      });
-      console.error("Error rejecting comment:", error);
     }
   };
 
@@ -120,100 +61,70 @@ export function CommentsPage() {
     }
   };
   
-  // Filter comments based on search term and active tab
+  // Filter comments based on search term
   const filteredComments = comments.filter(comment => {
-    const matchesSearch = comment.content.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          comment.author.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          comment.postId.title.toLowerCase().includes(searchTerm.toLowerCase());
+    // Safe author name extraction with null checking
+    const authorName = comment.author.name;
+    // Safe post title extraction with null checking  
+    const postTitle = !comment.postId 
+      ? 'Không xác định' 
+      : typeof comment.postId === 'string' 
+        ? 'Không xác định' 
+        : comment.postId.title || 'Không xác định';
     
-    if (activeTab === 'all') return matchesSearch;
-    if (activeTab === 'approved') return matchesSearch && comment.status === true;
-    if (activeTab === 'pending') return matchesSearch && comment.status === false;
-    if (activeTab === 'reported') return matchesSearch && comment.isReported === true;
+    const matchesSearch = comment.content.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          authorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          postTitle.toLowerCase().includes(searchTerm.toLowerCase());
     
     return matchesSearch;
   });
-
-  // Helper function to get status badge
-  const getStatusBadge = (status: boolean, isReported?: boolean) => {
-    if (isReported) {
-      return (
-        <Badge variant="destructive" className="flex items-center gap-1">
-          <AlertTriangle className="h-3 w-3" />
-          <span>Đã báo cáo</span>
-        </Badge>
-      );
-    }
-    
-    if (status) {
-      return (
-        <Badge variant="success" className="flex items-center gap-1">
-          <Check className="h-3 w-3" />
-          <span>Đã duyệt</span>
-        </Badge>
-      );
-    }
-    
-    return (
-      <Badge variant="outline" className="flex items-center gap-1">
-        <X className="h-3 w-3" />
-        <span>Chờ duyệt</span>
-      </Badge>
-    );
-  };
 
   // Table columns definition
   const columns = [
     {
       title: 'Nội dung',
-      field: 'content' as keyof Comment,
-      render: (value: string, comment: Comment) => (
-        <div className="flex items-start gap-3">
-          <Avatar className="h-9 w-9">
-            <AvatarFallback>{comment.author.username.charAt(0).toUpperCase()}</AvatarFallback>
-          </Avatar>
-          <div>
-            <div className="flex items-center gap-2">
-              <p className="font-medium">{comment.author.username}</p>
-              {getStatusBadge(comment.status, comment.isReported)}
-            </div>
-            <p className="text-sm mt-1 line-clamp-2">{value}</p>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-xs text-muted-foreground">
-                {format(new Date(comment.createdAt), 'dd/MM/yyyy HH:mm')}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                Bài viết: {comment.postId.title}
-              </span>
+      field: 'content' as keyof ApiComment,
+      render: (value: string, comment: ApiComment) => {
+        // Safe author name extraction with null checking
+        const authorName = comment.author.name || 'Không xác định';
+        
+            
+        const authorInitial = authorName.charAt(0).toUpperCase();
+        
+        // Safe post title extraction with null checking
+        const postTitle = !comment.postId 
+          ? 'Không xác định' 
+          : typeof comment.postId === 'string' 
+            ? 'Không xác định' 
+            : comment.postId.title || 'Không xác định';
+        
+        return (
+          <div className="flex items-start gap-3">
+            <Avatar className="h-9 w-9">
+              <AvatarFallback>{authorInitial}</AvatarFallback>
+            </Avatar>
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="font-medium">{authorName}</p>
+              </div>
+              <p className="text-sm mt-1 line-clamp-2">{value}</p>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-xs text-muted-foreground">
+                  {format(new Date(comment.createdAt), 'dd/MM/yyyy HH:mm')}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  Bài viết: {postTitle}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
-      ),
+        );
+      },
     },
   ];
 
-  const commentActions = (comment: Comment) => (
+  const commentActions = (comment: ApiComment) => (
     <div className="flex items-center gap-2">
-      {!comment.status && (
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={() => handleApproveComment(comment._id)}
-        >
-          <Check className="h-4 w-4 text-green-500" />
-        </Button>
-      )}
-      
-      {comment.status && (
-        <Button 
-          variant="ghost" 
-          size="icon"
-          onClick={() => handleRejectComment(comment._id)}
-        >
-          <X className="h-4 w-4 text-orange-500" />
-        </Button>
-      )}
-      
       <Button 
         variant="ghost" 
         size="icon"
@@ -241,7 +152,7 @@ export function CommentsPage() {
         <CardHeader className="pb-3">
           <CardTitle>Danh sách bình luận</CardTitle>
           <CardDescription>
-            Xem và duyệt tất cả bình luận từ người dùng
+            Xem và quản lý tất cả bình luận từ người dùng
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -261,21 +172,6 @@ export function CommentsPage() {
                 Lọc bình luận
               </Button>
             </div>
-            
-            <Tabs defaultValue="all" onValueChange={setActiveTab}>
-              <TabsList>
-                <TabsTrigger value="all">Tất cả ({comments.length})</TabsTrigger>
-                <TabsTrigger value="approved">
-                  Đã duyệt ({comments.filter(c => c.status === true).length})
-                </TabsTrigger>
-                <TabsTrigger value="pending">
-                  Chờ duyệt ({comments.filter(c => c.status === false).length})
-                </TabsTrigger>
-                <TabsTrigger value="reported">
-                  Báo cáo ({comments.filter(c => c.isReported === true).length})
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
           </div>
 
           {loading ? (
@@ -304,7 +200,6 @@ export function CommentsPage() {
                 className="mt-4"
                 onClick={() => {
                   setSearchTerm('');
-                  setActiveTab('all');
                 }}
               >
                 Xóa bộ lọc

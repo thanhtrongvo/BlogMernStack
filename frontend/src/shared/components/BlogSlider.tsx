@@ -5,29 +5,17 @@ import "slick-carousel/slick/slick-theme.css";
 import "./BlogSlider.css";
 import { Link } from "react-router-dom";
 import { postsAPI } from "../services/api";
-
-interface Post {
-  _id: string;
-  title: string;
-  content: string;
-  image: string;
-  author: string;
-  category: {
-    _id: string;
-    name: string;
-  };
-  createdAt: string;
-}
+import type { ApiPost } from "../types";
 
 const BlogSlider = () => {
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [posts, setPosts] = useState<ApiPost[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchPosts = async () => {
       try {
         setLoading(true);
-        const data = await postsAPI.getAllPosts() as Post[];
+        const data = await postsAPI.getAllPosts() as ApiPost[];
         setPosts(data);
       } catch (error) {
         console.error("Error fetching posts:", error);

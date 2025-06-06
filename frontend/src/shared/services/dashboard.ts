@@ -5,6 +5,7 @@ import type { DashboardStats } from '../types';
 export interface ChartDataPoint {
   name: string;
   views: number;
+  date?: Date;
 }
 
 // Interface for top posts
@@ -39,5 +40,23 @@ export const dashboardAPI = {
   getTopPosts: async (limit: number = 5): Promise<TopPost[]> => {
     const response = await apiClient.get(`/api/dashboard/posts/top?limit=${limit}`);
     return response.data;
+  },
+
+  // Get recent posts (from posts API)
+  getRecentPosts: async (limit: number = 5) => {
+    const response = await apiClient.get(`/api/posts?limit=${limit}&sort=createdAt&order=desc`);
+    return response.data;
+  },
+
+  // Get recent comments (from comments API) 
+  getRecentComments: async (limit: number = 5) => {
+    const response = await apiClient.get(`/api/comments?limit=${limit}&sort=createdAt&order=desc`);
+    return response.data;
+  },
+
+  // Get categories count
+  getCategoriesCount: async (): Promise<number> => {
+    const response = await apiClient.get('/api/categories');
+    return Array.isArray(response.data) ? response.data.length : 0;
   }
 };

@@ -307,20 +307,6 @@ export const commentsAPI = {
       method: 'DELETE',
       requireAuth: true,
     });
-  },
-  
-  approveComment: async (id: string) => {
-    return fetchAPI(`/api/comments/${id}/approve`, {
-      method: 'PUT',
-      requireAuth: true,
-    });
-  },
-  
-  rejectComment: async (id: string) => {
-    return fetchAPI(`/api/comments/${id}/reject`, {
-      method: 'PUT',
-      requireAuth: true,
-    });
   }
 };
 

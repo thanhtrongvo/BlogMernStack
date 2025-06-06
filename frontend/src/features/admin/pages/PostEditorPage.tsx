@@ -21,14 +21,7 @@ import { Label } from '@/shared/components/ui/label';
 import { useToast } from '@/shared/components/ui/use-toast';
 import { postsAPI, categoriesAPI } from '@/shared/services/api';
 import { format } from 'date-fns';
-
-interface Category {
-  _id: string;
-  name: string;
-  description: string;
-  status: string;
-  color?: string; // This might be added on the client side for UI
-}
+import type { ApiCategory } from '@/shared/types';
 
 interface PostFormData {
   title: string;
@@ -45,7 +38,7 @@ export function PostEditorPage() {
   // Remove editorRef as we'll use state for markdown content
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<ApiCategory[]>([]);
   const [formData, setFormData] = useState<PostFormData>({
     title: '',
     content: '',
@@ -62,7 +55,7 @@ export function PostEditorPage() {
         setInitialLoading(true);
         
         // Fetch categories
-        const categoriesData = await categoriesAPI.getAllCategories() as Category[];
+        const categoriesData = await categoriesAPI.getAllCategories() as ApiCategory[];
         setCategories(categoriesData);
         
         // If editing, fetch post data

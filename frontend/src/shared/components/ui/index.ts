@@ -9,6 +9,7 @@ export { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 export { Input } from './input';
 export { Label } from './label';
 export { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select';
+export { Separator } from './separator';
 export { Tabs, TabsContent, TabsList, TabsTrigger } from './tabs';
 export { Textarea } from './textarea';
 export { toast, useToast } from './use-toast';

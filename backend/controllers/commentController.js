@@ -8,10 +8,28 @@ dotenv.config();
 
 exports.getAllComments = async (req, res) => { 
     try {
-        const comment = await Comment.find();
-        res.status(200).json(comment);
+        const { limit, sort, order } = req.query;
+        
+        let query = Comment.find()
+            .populate('postId', 'title')
+            .populate('author', 'name email');
+        
+        // Add sorting if specified
+        if (sort) {
+            const sortOrder = order === 'desc' ? -1 : 1;
+            query = query.sort({ [sort]: sortOrder });
+        }
+        
+        // Add limit if specified
+        if (limit) {
+            query = query.limit(parseInt(limit));
+        }
+        
+        const comments = await query;
+        res.status(200).json(comments);
     }
     catch (error) {
+        console.error('Error fetching comments:', error);
         res.status(500).json({ message: 'Error fetching comments' });
     }
 }
@@ -31,7 +49,7 @@ exports.getCommentById = async (req, res) => {
 
 exports.createComment = async (req, res) => {
     const { postId, content } = req.body;
-    const author = req.user.username;
+    const author = req.user.id; // Use user ID from auth middleware
 
     try {
         const newComment = new Comment({
@@ -40,8 +58,15 @@ exports.createComment = async (req, res) => {
             author
         });
         await newComment.save();
-        res.status(201).json(newComment);
+        
+        // Populate author and post info before returning
+        const populatedComment = await Comment.findById(newComment._id)
+            .populate('author', 'name email')
+            .populate('postId', 'title');
+            
+        res.status(201).json(populatedComment);
     } catch (error) {
+        console.error('Error creating comment:', error);
         res.status(500).json({ message: 'Error creating comment' });
     }
 }
@@ -72,34 +97,25 @@ exports.deleteComment = async (req, res) => {
 }
 exports.getCommentsByPostId = async (req, res) => {
     try {
-        const comments = await Comment.find({ postId: req.params.postId });
-        if (!comments) {
-            return res.status(404).json({ message: 'No comments found for this post' });
-        }
+        const comments = await Comment.find({ postId: req.params.postId })
+            .populate('author', 'name email')
+            .populate('postId', 'title')
+            .sort({ createdAt: -1 }); // Sort by newest first
+            
         res.status(200).json(comments);
     } catch (error) {
+        console.error('Error fetching comments:', error);
         res.status(500).json({ message: 'Error fetching comments' });
     }
 }
 exports.getCommentsByUserId = async (req, res) => {
     try {
-        const comments = await Comment.find({ author: req.params.userId });
-        if (!comments) {
-            return res.status(404).json({ message: 'No comments found for this user' });
-        }
+        const comments = await Comment.find({ author: req.params.userId })
+            .populate('author', 'name email')
+            .populate('postId', 'title');
         res.status(200).json(comments);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching comments' });
-    }
-}
-exports.getCommentsByStatus = async (req, res) => {
-    try {
-        const comments = await Comment.find({ status: req.params.status });
-        if (!comments) {
-            return res.status(404).json({ message: 'No comments found with this status' });
-        }
-        res.status(200).json(comments);
-    } catch (error) {
+        console.error('Error fetching comments:', error);
         res.status(500).json({ message: 'Error fetching comments' });
     }
 }
@@ -127,44 +143,12 @@ exports.getCommentsByContent = async (req, res) => {
 }
 exports.getCommentsByAuthor = async (req, res) => {
     try {
-        const comments = await Comment.find({ author: req.params.author });
-        if (!comments) {
-            return res.status(404).json({ message: 'No comments found by this author' });
-        }
+        const comments = await Comment.find({ author: req.params.author })
+            .populate('author', 'name email')
+            .populate('postId', 'title');
         res.status(200).json(comments);
     } catch (error) {
+        console.error('Error fetching comments:', error);
         res.status(500).json({ message: 'Error fetching comments' });
-    }
-}
-
-exports.approveComment = async (req, res) => {
-    try {
-        const comment = await Comment.findByIdAndUpdate(
-            req.params.id, 
-            { status: true }, 
-            { new: true }
-        );
-        if (!comment) {
-            return res.status(404).json({ message: 'Comment not found' });
-        }
-        res.status(200).json({ message: 'Comment approved successfully', comment });
-    } catch (error) {
-        res.status(500).json({ message: 'Error approving comment' });
-    }
-}
-
-exports.rejectComment = async (req, res) => {
-    try {
-        const comment = await Comment.findByIdAndUpdate(
-            req.params.id, 
-            { status: false }, 
-            { new: true }
-        );
-        if (!comment) {
-            return res.status(404).json({ message: 'Comment not found' });
-        }
-        res.status(200).json({ message: 'Comment rejected successfully', comment });
-    } catch (error) {
-        res.status(500).json({ message: 'Error rejecting comment' });
     }
 }

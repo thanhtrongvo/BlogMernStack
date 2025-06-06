@@ -3,7 +3,22 @@ const User = require('../models/User');
 
 exports.getAllPosts = async (req, res) => {
     try {
-        const posts = await Post.find().populate('category', 'name');
+        const { limit, sort, order } = req.query;
+        
+        let query = Post.find().populate('category', 'name');
+        
+        // Add sorting if specified
+        if (sort) {
+            const sortOrder = order === 'desc' ? -1 : 1;
+            query = query.sort({ [sort]: sortOrder });
+        }
+        
+        // Add limit if specified
+        if (limit) {
+            query = query.limit(parseInt(limit));
+        }
+        
+        const posts = await query;
         res.status(200).json(posts);
     } catch (error) {
         console.error('Error fetching posts:', error);

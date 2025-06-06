@@ -13,19 +13,12 @@ import { useToast } from "./ui/use-toast";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { categoriesAPI } from "@/shared/services/api";
-
-// Category interface
-interface Category {
-    _id: string;
-    name: string;
-    description: string;
-    status: string;
-}
+import type { ApiCategory } from "@/shared/types";
 
 const Header = () => {
     const { user, isAuthenticated, logout } = useAuth();
     const { toast } = useToast();
-    const [categories, setCategories] = useState<Category[]>([]);
+    const [categories, setCategories] = useState<ApiCategory[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -34,7 +27,7 @@ const Header = () => {
         const fetchCategories = async () => {
             try {
                 const data = await categoriesAPI.getPublicCategories();
-                setCategories(data as Category[]);
+                setCategories(data as ApiCategory[]);
             } catch (error) {
                 console.error('Error fetching categories:', error);
                 // If API fails, use fallback categories
@@ -97,7 +90,7 @@ const Header = () => {
                             categories.map(category => (
                                 <li key={category._id}>
                                     <Link 
-                                        to={`/category/${category._id}`} 
+                                        to={`blog/category/${category._id}`} 
                                         className="text-gray-700 hover:text-primary font-medium transition-colors relative py-2 group"
                                     >
                                         {category.name}

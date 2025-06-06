@@ -2,27 +2,30 @@ import { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
-import { Eye, FileText, MessageSquare, Users, TrendingUp, AlertCircle, Loader2 } from 'lucide-react';
+import { Eye, FileText, MessageSquare, Users, TrendingUp, AlertCircle, Loader2, FolderOpen } from 'lucide-react';
 import { Badge } from '@/shared/components/ui/badge';
 import { dashboardAPI, type ChartDataPoint, type TopPost } from '@/shared/services/dashboard';
-import { type DashboardStats } from '@/shared/types';
+import { type DashboardStats, type ApiPost, type ApiComment } from '@/shared/types';
 import { useToast } from '@/shared/components/ui/use-toast';
 
 export function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<DashboardStats>({
-    totalPosts: 0,
-    totalUsers: 0,
-    totalComments: 0,
-    totalCategories: 0,
-    recentPosts: [],
-    popularPosts: [],
-    recentComments: []
+    stats: {
+      postCount: 0,
+      userCount: 0,
+      commentCount: 0,
+      totalViews: 0
+    },
+    updatedAt: new Date().toISOString()
   });
+  const [categoriesCount, setCategoriesCount] = useState<number>(0);
   const [weeklyData, setWeeklyData] = useState<ChartDataPoint[]>([]);
   const [monthlyData, setMonthlyData] = useState<ChartDataPoint[]>([]);
   const [topPosts, setTopPosts] = useState<TopPost[]>([]);
+  const [recentPosts, setRecentPosts] = useState<ApiPost[]>([]);
+  const [recentComments, setRecentComments] = useState<ApiComment[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -32,17 +35,31 @@ export function DashboardPage() {
       
       try {
         // Fetch all data in parallel
-        const [statsData, weeklyViewsData, monthlyViewsData, topPostsData] = await Promise.all([
+        const [
+          statsData, 
+          weeklyViewsData, 
+          monthlyViewsData, 
+          topPostsData,
+          recentPostsData,
+          recentCommentsData,
+          categoriesCountData
+        ] = await Promise.all([
           dashboardAPI.getStats(),
           dashboardAPI.getWeeklyViews(),
           dashboardAPI.getMonthlyViews(),
-          dashboardAPI.getTopPosts(5)
+          dashboardAPI.getTopPosts(5),
+          dashboardAPI.getRecentPosts(5),
+          dashboardAPI.getRecentComments(5),
+          dashboardAPI.getCategoriesCount()
         ]);
         
         setStats(statsData);
         setWeeklyData(weeklyViewsData);
         setMonthlyData(monthlyViewsData);
         setTopPosts(topPostsData);
+        setRecentPosts(recentPostsData);
+        setRecentComments(recentCommentsData);
+        setCategoriesCount(categoriesCountData);
       } catch (err) {
         console.error('Error fetching dashboard data:', err);
         setError('Không thể tải dữ liệu dashboard. Vui lòng thử lại sau.');
@@ -120,8 +137,11 @@ export function DashboardPage() {
               <div className="space-y-1">
                 <p className="text-sm font-medium text-muted-foreground">Tổng lượt xem</p>
                 <div className="flex items-baseline space-x-2">
-                  <h4 className="text-3xl font-bold">{weeklyData.reduce((sum, item) => sum + item.views, 0).toLocaleString()}</h4>
-                  <Badge variant="success" className="text-xs">+12.5%</Badge>
+                  <h4 className="text-3xl font-bold">{stats.stats.totalViews.toLocaleString()}</h4>
+                  <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                    <TrendingUp className="h-3 w-3 mr-1" />
+                    Live
+                  </Badge>
                 </div>
               </div>
               <div className="bg-primary/10 p-3 rounded-full">
@@ -137,8 +157,11 @@ export function DashboardPage() {
               <div className="space-y-1">
                 <p className="text-sm font-medium text-muted-foreground">Bài viết</p>
                 <div className="flex items-baseline space-x-2">
-                  <h4 className="text-3xl font-bold">{stats.totalPosts}</h4>
-                  <Badge variant="success" className="text-xs">+3</Badge>
+                  <h4 className="text-3xl font-bold">{stats.stats.postCount}</h4>
+                  <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                    <FileText className="h-3 w-3 mr-1" />
+                    Active
+                  </Badge>
                 </div>
               </div>
               <div className="bg-blue-500/10 p-3 rounded-full">
@@ -154,8 +177,11 @@ export function DashboardPage() {
               <div className="space-y-1">
                 <p className="text-sm font-medium text-muted-foreground">Người dùng</p>
                 <div className="flex items-baseline space-x-2">
-                  <h4 className="text-3xl font-bold">{stats.totalUsers}</h4>
-                  <Badge variant="success" className="text-xs">+8.2%</Badge>
+                  <h4 className="text-3xl font-bold">{stats.stats.userCount}</h4>
+                  <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                    <Users className="h-3 w-3 mr-1" />
+                    Total
+                  </Badge>
                 </div>
               </div>
               <div className="bg-green-500/10 p-3 rounded-full">
@@ -171,12 +197,36 @@ export function DashboardPage() {
               <div className="space-y-1">
                 <p className="text-sm font-medium text-muted-foreground">Bình luận</p>
                 <div className="flex items-baseline space-x-2">
-                  <h4 className="text-3xl font-bold">{stats.totalComments}</h4>
-                  <Badge variant="warning" className="text-xs">+5</Badge>
+                  <h4 className="text-3xl font-bold">{stats.stats.commentCount}</h4>
+                  <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-200">
+                    <MessageSquare className="h-3 w-3 mr-1" />
+                    Total
+                  </Badge>
                 </div>
               </div>
               <div className="bg-yellow-500/10 p-3 rounded-full">
                 <MessageSquare className="h-6 w-6 text-yellow-500" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Add Categories Card */}
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-muted-foreground">Danh mục</p>
+                <div className="flex items-baseline space-x-2">
+                  <h4 className="text-3xl font-bold">{categoriesCount}</h4>
+                  <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
+                    <FolderOpen className="h-3 w-3 mr-1" />
+                    Active
+                  </Badge>
+                </div>
+              </div>
+              <div className="bg-purple-500/10 p-3 rounded-full">
+                <FolderOpen className="h-6 w-6 text-purple-500" />
               </div>
             </div>
           </CardContent>
@@ -277,6 +327,111 @@ export function DashboardPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recent Activity Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Posts */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Bài viết gần đây
+            </CardTitle>
+            <CardDescription>5 bài viết được tạo gần đây nhất</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {recentPosts.length > 0 ? recentPosts.map((post) => (
+                <div 
+                  key={post._id} 
+                  className="flex items-start justify-between pb-4 border-b border-gray-100 last:border-0 last:pb-0"
+                >
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-sm font-medium line-clamp-2 mb-1">{post.title}</h4>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>Tác giả: {typeof post.author === 'object' ? post.author.name : post.author}</span>
+                      <span>•</span>
+                      <span>{formatDate(post.createdAt)}</span>
+                    </div>
+                    <div className="flex items-center gap-1 mt-2">
+                      <Badge 
+                        variant="outline" 
+                        className="text-xs px-2 py-0"
+                      >
+                        {post.category?.name || 'Không có danh mục'}
+                      </Badge>
+                      <Badge 
+                        variant={post.status ? 'default' : 'secondary'} 
+                        className="text-xs px-2 py-0"
+                      >
+                        {post.status ? 'Đã xuất bản' : 'Nháp'}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground ml-3">
+                    <Eye className="h-3 w-3" />
+                    <span>{post.views || 0}</span>
+                  </div>
+                </div>
+              )) : (
+                <div className="text-center py-6 text-muted-foreground">
+                  <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>Chưa có bài viết nào</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recent Comments */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5" />
+              Bình luận gần đây
+            </CardTitle>
+            <CardDescription>5 bình luận được tạo gần đây nhất</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {recentComments.length > 0 ? recentComments.map((comment) => (
+                <div 
+                  key={comment._id} 
+                  className="flex items-start gap-3 pb-4 border-b border-gray-100 last:border-0 last:pb-0"
+                >
+                  <div className="flex-shrink-0 w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                    <Users className="h-4 w-4 text-gray-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-sm font-medium">{typeof comment.author === 'object' ? comment.author.name : comment.author}</span>
+                      <Badge 
+                        variant="default"
+                        className="text-xs px-2 py-0"
+                      >
+                        Đã xuất bản
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
+                      {comment.content}
+                    </p>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>Bài viết: {typeof comment.postId === 'object' ? comment.postId.title : 'Không xác định'}</span>
+                      <span>•</span>
+                      <span>{formatDate(comment.createdAt)}</span>
+                    </div>
+                  </div>
+                </div>
+              )) : (
+                <div className="text-center py-6 text-muted-foreground">
+                  <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>Chưa có bình luận nào</p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
