@@ -12,7 +12,7 @@ import {
   BlogSlider, 
   Footer 
 } from '../shared/components';
-import { AuthProvider } from '../shared/contexts';
+import { AuthProvider, ThemeProvider } from '../shared/contexts';
 
 import '../styles/App.css'
 
@@ -34,24 +34,26 @@ function FrontendLayout() {
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <Routes>
-          <Route 
-            path="/admin/*" 
-            element={
-              <AuthGuard allowedRoles={['admin']}>
-                <AdminDashboard />
-              </AuthGuard>
-            } 
-          />
-          <Route path="/auth/*" element={<AuthRoutes />} />
-          <Route path="/test-markdown" element={<ComprehensiveTest />} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/blog/*" element={<BlogRoutes />} />
-          <Route path="/*" element={<FrontendLayout />} />
-        </Routes>
-        <Toaster />
-      </Router>
+      <ThemeProvider>
+        <Router>
+          <Routes>
+            <Route
+              path="/admin/*"
+              element={
+                <AuthGuard allowedRoles={['admin']}>
+                  <AdminDashboard />
+                </AuthGuard>
+              }
+            />
+            <Route path="/auth/*" element={<AuthRoutes />} />
+            <Route path="/test-markdown" element={<ComprehensiveTest />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/blog/*" element={<BlogRoutes />} />
+            <Route path="/*" element={<FrontendLayout />} />
+          </Routes>
+          <Toaster />
+        </Router>
+      </ThemeProvider>
     </AuthProvider>
   );
 }

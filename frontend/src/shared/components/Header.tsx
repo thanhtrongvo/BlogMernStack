@@ -8,9 +8,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger 
 } from "./ui/dropdown-menu";
-import { LogOut, User, Settings, Shield, Menu, X } from "lucide-react";
+import { LogOut, User, Settings, Shield, Menu, X, Sun, Moon } from "lucide-react";
 import { useToast } from "./ui/use-toast";
-import { useAuth } from "@/shared/contexts/AuthContext";
+import { useAuth, useTheme } from "@/shared/contexts";
 import { useEffect, useState } from "react";
 import { categoriesAPI } from "@/shared/services/api";
 
@@ -24,6 +24,7 @@ interface Category {
 
 const Header = () => {
     const { user, isAuthenticated, logout } = useAuth();
+    const { theme, toggleTheme } = useTheme();
     const { toast } = useToast();
     const [categories, setCategories] = useState<Category[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -294,8 +295,18 @@ const Header = () => {
                     </div>
                 )}
                 
-                {/* Desktop Auth */}
-                <div className="hidden md:flex items-center space-x-2 z-10">
+                {/* Desktop Auth & Theme Toggle */}
+                <div className="hidden md:flex items-center space-x-4 z-10"> {/* Increased space-x for new button */}
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={toggleTheme}
+                        className="rounded-full w-9 h-9 border-gray-300 hover:bg-gray-100 hover:text-primary transition-colors"
+                        aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+                    >
+                        {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+                    </Button>
+
                     {isAuthenticated && user ? (
                         <DropdownMenu>
                             <DropdownMenuTrigger className="focus:outline-none hover:opacity-80 transition-opacity">
