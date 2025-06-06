@@ -106,7 +106,7 @@ export function DashboardPage() {
           <p className="text-muted-foreground">Xem các số liệu và hoạt động trên blog của bạn</p>
         </div>
         <div className="mt-4 md:mt-0">
-          <Badge variant="outline" className="bg-white py-1 px-3 text-xs">
+          <Badge variant="outline" className="bg-card text-card-foreground py-1 px-3 text-xs border-border"> {/* Themed Badge */}
             Dữ liệu cập nhật: {formatDate(new Date().toISOString())}
           </Badge>
         </div>
@@ -208,13 +208,14 @@ export function DashboardPage() {
                 <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={weeklyData}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                      <XAxis dataKey="name" />
-                      <YAxis />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" /> {/* Themed grid */}
+                      <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} /> {/* Themed axis & ticks */}
+                      <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} /> {/* Themed axis & ticks */}
                       <Tooltip
+                        contentStyle={{ backgroundColor: 'hsl(var(--popover))', color: 'hsl(var(--popover-foreground))', borderRadius: '0.5rem', border: '1px solid hsl(var(--border))' }} // Themed tooltip
                         formatter={(value) => [`${value} lượt xem`, 'Lượt xem']}
                       />
-                      <Bar dataKey="views" fill="#6366F1" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="views" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} /> {/* Themed bar */}
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -224,19 +225,20 @@ export function DashboardPage() {
                 <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={monthlyData}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                      <XAxis dataKey="name" />
-                      <YAxis />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" /> {/* Themed grid */}
+                      <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} /> {/* Themed axis & ticks */}
+                      <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} /> {/* Themed axis & ticks */}
                       <Tooltip
+                        contentStyle={{ backgroundColor: 'hsl(var(--popover))', color: 'hsl(var(--popover-foreground))', borderRadius: '0.5rem', border: '1px solid hsl(var(--border))' }} // Themed tooltip
                         formatter={(value) => [`${value} lượt xem`, 'Lượt xem']}
                       />
                       <Line 
                         type="monotone" 
                         dataKey="views" 
-                        stroke="#6366F1" 
+                        stroke="hsl(var(--primary))" // Themed line
                         strokeWidth={2}
-                        dot={{ r: 4 }}
-                        activeDot={{ r: 6 }}
+                        dot={{ r: 4, fill: 'hsl(var(--primary))' }} // Themed dots
+                        activeDot={{ r: 6, fill: 'hsl(var(--primary))' }} // Themed active dots
                       />
                     </LineChart>
                   </ResponsiveContainer>
@@ -256,10 +258,10 @@ export function DashboardPage() {
               {topPosts.map((post, index) => (
                 <div 
                   key={post.id} 
-                  className="flex items-start justify-between pb-4 border-b border-gray-100 last:border-0 last:pb-0"
+                  className="flex items-start justify-between pb-4 border-b border-border last:border-0 last:pb-0" // Themed border
                 >
                   <div className="flex items-start gap-3">
-                    <div className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-xs font-medium">
+                    <div className="flex items-center justify-center w-6 h-6 rounded-full bg-muted text-muted-foreground text-xs font-medium"> {/* Themed rank circle */}
                       {index + 1}
                     </div>
                     <div>

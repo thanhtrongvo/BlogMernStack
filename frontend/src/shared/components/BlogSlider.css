@@ -6,6 +6,7 @@
   margin-left: auto;
   margin-right: auto;
   padding: 0 20px;
+  /* Ensure container itself doesn't have a conflicting background if not intended */
 }
 
 .blog-slide-item {
@@ -28,13 +29,13 @@
 
 .blog-slider .slick-dots li button:before {
   font-size: 8px;
-  color: #4f46e5;
+  color: hsl(var(--primary)); /* Use HSL version of primary for direct color value */
   opacity: 0.3;
   transition: opacity 0.2s ease;
 }
 
 .blog-slider .slick-dots li.slick-active button:before {
-  color: #4f46e5;
+  color: hsl(var(--primary));
   opacity: 1;
   transform: scale(1.2);
 }
@@ -44,9 +45,9 @@
 .blog-slider .slick-next {
   width: 36px;
   height: 36px;
-  background: #4f46e5;
+  background: hsl(var(--primary));
   border-radius: 50%;
-  box-shadow: 0 3px 8px rgba(79, 70, 229, 0.25);
+  box-shadow: 0 3px 8px hsla(var(--primary), 0.25); /* Shadow using primary color with alpha */
   z-index: 2;
   transition: all 0.2s ease;
   display: flex !important;
@@ -57,8 +58,8 @@
 
 .blog-slider .slick-prev:hover, 
 .blog-slider .slick-next:hover {
-  background: #4338ca;
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+  background: hsl(var(--primary) / 0.9); /* Slightly darker/more opaque primary or use filter: brightness(90%) */
+  box-shadow: 0 4px 12px hsla(var(--primary), 0.35);
   opacity: 1;
 }
 
@@ -73,26 +74,27 @@
 .blog-slider .slick-prev:before, 
 .blog-slider .slick-next:before {
   font-size: 16px;
-  color: white;
+  color: hsl(var(--primary-foreground));
   opacity: 1;
 }
 
 /* Blog card styling */
 .blog-card {
-  background: white;
+  background: hsl(var(--card));
+  color: hsl(var(--card-foreground));
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 15px hsla(var(--foreground), 0.05); /* Shadow with foreground and alpha */
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   height: 320px;
   position: relative;
-  border: 1px solid rgba(240, 240, 250, 0.8);
+  border: 1px solid hsl(var(--border));
 }
 
 .blog-card:hover {
   transform: translateY(-6px);
-  box-shadow: 0 12px 20px rgba(79, 70, 229, 0.12);
-  border-color: rgba(79, 70, 229, 0.15);
+  box-shadow: 0 12px 20px hsla(var(--primary), 0.12); /* Shadow with primary color and alpha */
+  border-color: hsla(var(--primary), 0.15);
 }
 
 .blog-image-container {
@@ -116,13 +118,13 @@
   position: absolute;
   top: 12px;
   left: 12px;
-  background-color: #4f46e5;
-  color: white;
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
   font-size: 11px;
   font-weight: 600;
   padding: 5px 10px;
   border-radius: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px hsla(var(--foreground), 0.1); /* Shadow with foreground and alpha */
   z-index: 1;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -133,7 +135,7 @@
   height: 120px;
   display: flex;
   align-items: center;
-  background: white;
+  /* background is inherited from .blog-card or should be transparent if card has bg */
   position: relative;
 }
 
@@ -144,14 +146,14 @@
   left: 16px;
   right: 16px;
   height: 1px;
-  background-color: rgba(229, 231, 235, 0.6);
+  background-color: hsl(var(--border));
 }
 
 .blog-title {
   font-size: 15px;
   font-weight: 600;
   line-height: 1.4;
-  color: #1e293b;
+  color: hsl(var(--card-foreground)); /* Use card-foreground */
   margin: 0;
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -162,7 +164,7 @@
 }
 
 .blog-card:hover .blog-title {
-  color: #4f46e5;
+  color: hsl(var(--primary));
 }
 
 /* Responsive adjustments */
@@ -232,7 +234,13 @@
   }
 }
 
-/* Loading animation */
+/* Shimmer for loading skeleton - used in BlogSlider.tsx */
+.shimmer-bg {
+  animation: shimmer 1.5s ease-in-out infinite;
+  background: linear-gradient(90deg, hsl(var(--muted)/0.5) 25%, hsl(var(--muted)/0.2) 50%, hsl(var(--muted)/0.5) 75%);
+  background-size: 200px 100%;
+}
+
 @keyframes shimmer {
   0% {
     background-position: -200px 0;
@@ -240,12 +248,6 @@
   100% {
     background-position: calc(200px + 100%) 0;
   }
-}
-
-.animate-pulse {
-  animation: shimmer 1.5s ease-in-out infinite;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-  background-size: 200px 100%;
 }
 
 /* Accessibility support */
@@ -265,8 +267,8 @@
     transform: none;
   }
   
-  .animate-pulse {
+  .shimmer-bg { /* Changed from .animate-pulse to target .shimmer-bg */
     animation: none;
-    background: #f0f0f0;
+    background: hsl(var(--muted)/0.5); /* Static muted background for reduced motion */
   }
 }

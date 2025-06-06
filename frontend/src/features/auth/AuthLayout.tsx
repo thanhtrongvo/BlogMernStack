@@ -7,7 +7,7 @@ interface AuthLayoutProps {
 
 export function AuthLayout({ children }: AuthLayoutProps) {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 p-4 sm:p-6 md:p-8">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background text-foreground p-4 sm:p-6 md:p-8"> {/* Themed background and text */}
       <div className="w-full max-w-md">
         <Link to="/" className="mx-auto flex justify-center mb-6">
           <h1 className="text-3xl font-bold text-primary">My Application</h1>

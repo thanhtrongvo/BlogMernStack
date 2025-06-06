@@ -76,7 +76,7 @@ export function ProfilePage() {
                   value={formData.email}
                   onChange={handleChange}
                   disabled={true} // Email không thể thay đổi
-                  className="bg-gray-50"
+                   className="bg-muted/50 cursor-not-allowed" // Themed disabled background
                 />
                 <p className="text-xs text-muted-foreground">
                   Email không thể thay đổi sau khi đăng ký

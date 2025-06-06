@@ -18,7 +18,7 @@ import '../styles/App.css'
 
 function FrontendLayout() {
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-background text-foreground"> {/* Added bg-background and text-foreground */}
       <Header/>
       <main className="flex-grow">
         <Banner onSearch={(term: string) => console.log(term)} />

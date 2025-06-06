@@ -13,8 +13,9 @@ import Footer from "../../../shared/components/Footer";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { vs } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { vs, okaidia } from "react-syntax-highlighter/dist/esm/styles/prism"; // Import a dark style
 import "./BlogDetail.css";
+import { useTheme } from "@/shared/contexts"; // Import useTheme
 
 // Temporary types (replace with your actual types)
 interface Author {
@@ -68,6 +69,7 @@ export default function BlogDetailPage() {
   // const [headings, setHeadings] = useState<Heading[]>([]); // Removed table of contents
   const [latestPosts, setLatestPosts] = useState<LatestPost[]>([]);
   const contentRef = useRef<HTMLDivElement>(null);
+  const { theme } = useTheme(); // Get current theme
 
   // Extract headings from markdown or HTML content (removed for table of contents)
   // const extractHeadings = (content: string): Heading[] => {
@@ -327,14 +329,14 @@ export default function BlogDetailPage() {
     return (
       <div className="flex flex-col min-h-screen">
         <Header />
-        <main className="flex-grow">
+        <main className="flex-grow bg-background text-foreground"> {/* Themed main for page */}
           <div className="container mx-auto px-4 py-8">
-            <div className="animate-pulse">
-              <div className="h-10 bg-gray-200 rounded w-3/4 mb-6"></div>
-              <div className="h-96 bg-gray-200 rounded mb-6"></div>
-              <div className="h-6 bg-gray-200 rounded w-1/4 mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/2 mb-6"></div>
-              <div className="h-32 bg-gray-200 rounded mb-6"></div>
+            <div className="animate-pulse"> {/* Consider using shimmer-bg from BlogSlider.css if Tailwind bg-muted is not enough */}
+              <div className="h-10 bg-muted rounded w-3/4 mb-6"></div>
+              <div className="h-96 bg-muted rounded mb-6"></div>
+              <div className="h-6 bg-muted rounded w-1/4 mb-2"></div>
+              <div className="h-4 bg-muted rounded w-1/2 mb-6"></div>
+              <div className="h-32 bg-muted rounded mb-6"></div>
             </div>
           </div>
         </main>
@@ -347,13 +349,13 @@ export default function BlogDetailPage() {
     return (
       <div className="flex flex-col min-h-screen">
         <Header />
-        <main className="flex-grow">
+        <main className="flex-grow bg-background text-foreground"> {/* Themed main for page */}
           <div className="container mx-auto px-4 py-8">
             <div className="text-center py-12">
-              <h2 className="text-2xl font-bold text-gray-800">
+              <h2 className="text-2xl font-bold text-foreground"> {/* Themed text */}
                 Post not found
               </h2>
-              <p className="text-gray-600 mt-2">
+              <p className="text-muted-foreground mt-2"> {/* Themed text */}
                 The blog post you're looking for doesn't exist or has been
                 removed.
               </p>
@@ -394,15 +396,16 @@ export default function BlogDetailPage() {
   // Component for latest posts sidebar
   const LatestPostsSidebar = () => {
     return (
-      <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-        <h4 className="text-lg font-semibold mb-3 text-gray-900">
+      // Use Tailwind classes for theming the sidebar card
+      <Card className="p-4 shadow-sm bg-card text-card-foreground border-border">
+        <h4 className="text-lg font-semibold mb-3 text-foreground pb-2 border-b border-border"> {/* Themed heading and border */}
           Bài viết mới nhất
         </h4>
         <ul className="space-y-4">
           {latestPosts.map((post) => (
             <li
               key={post._id}
-              className="border-b border-gray-100 pb-3 last:border-0 last:pb-0"
+              className="border-b border-border pb-3 last:border-0 last:pb-0" // Themed border
             >
               <a href={`/blog/${post._id}`} className="group">
                 {post.image && (
@@ -412,10 +415,10 @@ export default function BlogDetailPage() {
                     className="w-full h-24 object-cover rounded-md mb-2"
                   />
                 )}
-                <h5 className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
+                <h5 className="font-medium text-foreground group-hover:text-primary transition-colors"> {/* Themed text and hover */}
                   {post.title}
                 </h5>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1"> {/* Themed text */}
                   {new Date(post.createdAt).toLocaleDateString("vi-VN", {
                     year: "numeric",
                     month: "long",
@@ -440,7 +443,7 @@ export default function BlogDetailPage() {
             <div className="blog-main-content">
               {/* Blog Header */}
               <div className="mb-8">
-                <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4"> {/* Themed text */}
                   {post.title}
                 </h1>
 
@@ -455,10 +458,10 @@ export default function BlogDetailPage() {
                     />
                   </Avatar>
                   <div>
-                    <p className="font-medium text-gray-900">
+                    <p className="font-medium text-foreground"> {/* Themed text */}
                       {post.author.name}
                     </p>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted-foreground"> {/* Themed text */}
                       {new Date(post.createdAt).toLocaleDateString("vi-VN", {
                         year: "numeric",
                         month: "long",
@@ -480,7 +483,7 @@ export default function BlogDetailPage() {
 
               {/* Blog Content */}
               <div
-                className="prose prose-lg blog-content mb-8"
+                className={`prose prose-lg dark:prose-invert blog-content mb-8 max-w-none`} // Added dark:prose-invert and max-w-none
                 ref={contentRef}
               >
                 {post.content ? (
@@ -493,7 +496,7 @@ export default function BlogDetailPage() {
                       return (
                         <div
                           dangerouslySetInnerHTML={{ __html: post.content }}
-                          className="legacy-html-content"
+                          className="legacy-html-content" // Ensure this class also has dark mode styles if needed
                         />
                       );
                     } else {
@@ -581,7 +584,7 @@ export default function BlogDetailPage() {
                               const inline = !match;
                               return !inline && match ? (
                                 <SyntaxHighlighter
-                                  style={vs}
+                                  style={theme === 'dark' ? okaidia : vs} // Themed syntax highlighter
                                   language={match[1]}
                                   PreTag="div"
                                   {...props}
@@ -602,14 +605,14 @@ export default function BlogDetailPage() {
                     }
                   })()
                 ) : (
-                  <div className="text-center py-8 text-gray-500">
+                  <div className="text-center py-8 text-muted-foreground"> {/* Themed text */}
                     <p>Nội dung bài viết không khả dụng</p>
                   </div>
                 )}
               </div>
 
               {/* Like Button */}
-              <div className="border-t border-b py-4 my-8">
+              <div className="border-t border-b border-border py-4 my-8"> {/* Themed border */}
                 <Button
                   onClick={handleLike}
                   variant={hasLiked ? "default" : "outline"}
@@ -617,7 +620,7 @@ export default function BlogDetailPage() {
                 >
                   <span className="text-xl">👍</span>
                   <span>Like</span>
-                  <span className="ml-1 bg-gray-100 px-2 py-1 rounded-full text-sm">
+                  <span className={`ml-1 px-2 py-1 rounded-full text-sm ${hasLiked ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}> {/* Themed like count */}
                     {post.likes}
                   </span>
                 </Button>
@@ -625,7 +628,7 @@ export default function BlogDetailPage() {
 
               {/* Comments Section */}
               <div className="mt-12">
-                <h3 className="text-xl font-bold mb-6">
+                <h3 className="text-xl font-bold mb-6 text-foreground"> {/* Themed text */}
                   Comments ({post.comments.length})
                 </h3>
 
@@ -638,7 +641,7 @@ export default function BlogDetailPage() {
                         setComment(e.target.value)
                       }
                       placeholder="Share your thoughts..."
-                      className="mb-3"
+                      className="mb-3 bg-input text-foreground border-border" // Themed textarea
                       rows={4}
                     />
                     <Button
@@ -649,12 +652,12 @@ export default function BlogDetailPage() {
                     </Button>
                   </form>
                 ) : (
-                  <Card className="p-4 mb-8 bg-gray-50 border border-gray-200">
-                    <p className="text-center text-gray-700">
+                  <Card className="p-4 mb-8 bg-muted/50 border-border"> {/* Themed card */}
+                    <p className="text-center text-muted-foreground"> {/* Themed text */}
                       Vui lòng{" "}
                       <a
                         href="/auth/login"
-                        className="text-blue-600 hover:underline"
+                        className="text-primary hover:underline" // Themed link
                       >
                         đăng nhập
                       </a>{" "}
@@ -666,7 +669,7 @@ export default function BlogDetailPage() {
                 {/* Comments List */}
                 <div className="space-y-6">
                   {post.comments.map((comment) => (
-                    <div key={comment._id} className="border-b pb-6">
+                    <div key={comment._id} className="border-b border-border pb-6"> {/* Themed border */}
                       <div className="flex items-start gap-3">
                         <Avatar className="h-10 w-10">
                           <img
@@ -679,24 +682,24 @@ export default function BlogDetailPage() {
                         </Avatar>
                         <div className="flex-1">
                           <div className="flex justify-between items-center mb-1">
-                            <h4 className="font-medium text-gray-900">
+                            <h4 className="font-medium text-foreground"> {/* Themed text */}
                               {comment.author.name}
                             </h4>
-                            <span className="text-sm text-gray-500">
+                            <span className="text-sm text-muted-foreground"> {/* Themed text */}
                               {formatDistanceToNow(
                                 new Date(comment.createdAt),
                                 { addSuffix: true }
                               )}
                             </span>
                           </div>
-                          <p className="text-gray-700">{comment.content}</p>
+                          <p className="text-muted-foreground">{comment.content}</p> {/* Themed text */}
                         </div>
                       </div>
                     </div>
                   ))}
 
                   {post.comments.length === 0 && (
-                    <p className="text-center text-gray-500 py-4">
+                    <p className="text-center text-muted-foreground py-4"> {/* Themed text */}
                       No comments yet. Be the first to comment!
                     </p>
                   )}

@@ -78,19 +78,20 @@ const BlogSlider = () => {
 
   if (loading) {
     return (
-      <div className="blog-slider-container">
-        <div className="animate-pulse flex space-x-6">
+      <div className="blog-slider-container py-8"> {/* Added py-8 for consistency if needed */}
+        {/* Loading Skeleton - uses CSS defined shimmer now */}
+        <div className="shimmer-container flex space-x-6">
           <div className="flex-1 space-y-4 py-1">
-            <div className="h-56 bg-gray-200 rounded-2xl"></div>
-            <div className="h-6 bg-gray-200 rounded w-3/4"></div>
+            <div className="h-56 shimmer-bg rounded-2xl"></div>
+            <div className="h-6 shimmer-bg rounded w-3/4"></div>
           </div>
           <div className="flex-1 space-y-4 py-1">
-            <div className="h-56 bg-gray-200 rounded-2xl"></div>
-            <div className="h-6 bg-gray-200 rounded w-3/4"></div>
+            <div className="h-56 shimmer-bg rounded-2xl"></div>
+            <div className="h-6 shimmer-bg rounded w-3/4"></div>
           </div>
           <div className="flex-1 space-y-4 py-1">
-            <div className="h-56 bg-gray-200 rounded-2xl"></div>
-            <div className="h-6 bg-gray-200 rounded w-3/4"></div>
+            <div className="h-56 shimmer-bg rounded-2xl"></div>
+            <div className="h-6 shimmer-bg rounded w-3/4"></div>
           </div>
         </div>
       </div>
@@ -98,11 +99,11 @@ const BlogSlider = () => {
   }
 
   return (
-    <div className="blog-slider-container">
+    <div className="blog-slider-container py-8"> {/* Added py-8 for consistency */}
       {posts.length === 0 ? (
         <div className="text-center py-8">
-          <h3 className="text-lg font-medium text-gray-700">No blog posts available</h3>
-          <p className="text-gray-500 mt-2">Check back later for new content!</p>
+          <h3 className="text-lg font-medium text-foreground">No blog posts available</h3> {/* Themed text */}
+          <p className="text-muted-foreground mt-2">Check back later for new content!</p> {/* Themed text */}
         </div>
       ) : (
         <Slider className="blog-slider" {...settings}>

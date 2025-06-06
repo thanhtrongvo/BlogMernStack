@@ -143,7 +143,7 @@ export function LoginForm() {
               />
               <button
                 type="button"
-                className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400"
+                className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground"
                 onClick={() => setShowPassword(!showPassword)}
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}

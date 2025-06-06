@@ -53,7 +53,7 @@ export function AdminLayout() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background text-foreground"> {/* Themed background and text */}
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div 
@@ -63,12 +63,12 @@ export function AdminLayout() {
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed top-0 left-0 z-50 h-full w-64 bg-white border-r border-gray-200 shadow-sm transform transition-transform duration-200 ease-in-out ${
+      <aside className={`fixed top-0 left-0 z-50 h-full w-64 bg-card text-card-foreground border-r border-border shadow-sm transform transition-transform duration-200 ease-in-out ${ /* Themed sidebar */
         sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       }`}>
-        <div className="p-6 border-b border-gray-200">
+        <div className="p-6 border-b border-border"> {/* Themed border */}
           <Link to="/admin" className="flex items-center gap-2">
-            <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-gray-700">Go Dev Blog</span>
+            <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-foreground/70">Go Dev Blog</span> {/* Themed gradient text */}
           </Link>
         </div>
         
@@ -80,8 +80,8 @@ export function AdminLayout() {
                   to={item.path}
                   className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
                     location.pathname === item.path
-                      ? "bg-primary/10 text-primary"
-                      : "text-gray-600 hover:bg-gray-100"
+                      ? "bg-primary/10 text-primary" // Active state is good
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground" // Themed inactive state
                   }`}
                 >
                   {item.icon}
@@ -92,8 +92,8 @@ export function AdminLayout() {
           </ul>
         </nav>
         
-        <div className="absolute bottom-0 w-full p-4 border-t border-gray-200">
-          <Link to="/" className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">
+        <div className="absolute bottom-0 w-full p-4 border-t border-border"> {/* Themed border */}
+          <Link to="/" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"> {/* Themed link */}
             <LogOut className="w-5 h-5" />
             <span>Quay lại Blog</span>
           </Link>
@@ -101,9 +101,9 @@ export function AdminLayout() {
       </aside>
 
       {/* Main content */}
-      <main className={`lg:ml-64 min-h-screen flex flex-col transition-all duration-200 ease-in-out`}>
+      <main className={`lg:ml-64 min-h-screen flex flex-col transition-all duration-200 ease-in-out bg-background`}> {/* Ensured main content area also has bg-background if sidebar doesn't overlap */}
         {/* Header */}
-        <header className="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+        <header className="sticky top-0 z-30 bg-card text-card-foreground border-b border-border shadow-sm"> {/* Themed header */}
           <div className="px-4 py-3 flex items-center justify-between">
             <Button
               variant="ghost"
@@ -124,8 +124,8 @@ export function AdminLayout() {
                   <AvatarFallback>AD</AvatarFallback>
                 </Avatar>
                 <div className="hidden md:block">
-                  <p className="text-sm font-medium">Admin</p>
-                  <p className="text-xs text-gray-500">admin@godevblog.com</p>
+                  <p className="text-sm font-medium text-foreground">Admin</p> {/* Themed text */}
+                  <p className="text-xs text-muted-foreground">admin@godevblog.com</p> {/* Themed text */}
                 </div>
               </div>
             </div>
@@ -133,7 +133,7 @@ export function AdminLayout() {
         </header>
 
         {/* Page content */}
-        <div className="flex-1 p-6">
+        <div className="flex-1 p-6 bg-background"> {/* Ensured Outlet area has bg-background */}
           <Outlet />
         </div>
       </main>

@@ -70,8 +70,8 @@ const Header = () => {
     };
 
     return (
-        <header className="sticky top-0 z-30 bg-white shadow-md">
-            <div className="container mx-auto flex justify-between items-center py-4 px-4 md:px-6 border-b border-gray-200 bg-gradient-to-r from-white to-gray-50 relative">
+        <header className="sticky top-0 z-30 bg-card shadow-md border-b border-border"> {/* Changed bg-white to bg-card, added border-border */}
+            <div className="container mx-auto flex justify-between items-center py-4 px-4 md:px-6 bg-gradient-to-r from-card to-background/80 relative"> {/* Changed gradient */}
                 {/* Logo */}
                 <h1 className="font-bold text-xl md:text-2xl bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-600 z-10">My Application</h1>
                 
@@ -140,7 +140,7 @@ const Header = () => {
                 
                 {/* Mobile Navigation - Full screen overlay */}
                 {mobileMenuOpen && (
-                    <div className="fixed inset-0 bg-white z-20 flex flex-col pt-20 pb-6 px-6 md:hidden">
+                    <div className="fixed inset-0 bg-card text-card-foreground z-20 flex flex-col pt-20 pb-6 px-6 md:hidden"> {/* Changed bg-white to bg-card, added text-card-foreground */}
                         <nav className="flex-1">
                             <ul className="flex flex-col space-y-6 items-center pt-4">
                                 {isLoading ? (
@@ -211,10 +211,10 @@ const Header = () => {
                         <div className="flex flex-col space-y-3 mt-8 w-full">
                             {isAuthenticated && user ? (
                                 <>
-                                    <div className="flex items-center justify-center space-x-3 bg-gray-50 p-4 rounded-lg">
-                                        <Avatar className="h-10 w-10 border border-gray-200 ring-2 ring-primary/20">
+                                    <div className="flex items-center justify-center space-x-3 bg-background/50 p-4 rounded-lg"> {/* Adjusted bg-gray-50 */}
+                                        <Avatar className="h-10 w-10 border border-border ring-2 ring-primary/20"> {/* Adjusted border */}
                                             <AvatarImage src="" />
-                                            <AvatarFallback className="bg-gradient-to-br from-primary to-blue-600 text-white">
+                                            <AvatarFallback className="bg-gradient-to-br from-primary to-blue-600 text-primary-foreground"> {/* Adjusted text color */}
                                                 {user.username.substring(0, 2).toUpperCase()}
                                             </AvatarFallback>
                                         </Avatar>
@@ -226,7 +226,7 @@ const Header = () => {
                                     
                                     <Link 
                                         to="/profile" 
-                                        className="flex items-center p-3 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
+                                        className="flex items-center p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors" // Adjusted background
                                         onClick={() => setMobileMenuOpen(false)}
                                     >
                                         <User className="mr-3 h-5 w-5" />
@@ -236,7 +236,7 @@ const Header = () => {
                                     {user.role === 'admin' && (
                                         <Link 
                                             to="/admin" 
-                                            className="flex items-center p-3 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
+                                            className="flex items-center p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors" // Adjusted background
                                             onClick={() => setMobileMenuOpen(false)}
                                         >
                                             <Shield className="mr-3 h-5 w-5" />
@@ -246,7 +246,7 @@ const Header = () => {
                                     
                                     <Link 
                                         to="#" 
-                                        className="flex items-center p-3 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
+                                        className="flex items-center p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors" // Adjusted background
                                         onClick={() => setMobileMenuOpen(false)}
                                     >
                                         <Settings className="mr-3 h-5 w-5" />
@@ -254,7 +254,7 @@ const Header = () => {
                                     </Link>
                                     
                                     <button 
-                                        className="flex items-center p-3 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                                        className="flex items-center p-3 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors" // Adjusted destructive button
                                         onClick={() => {
                                             handleLogout();
                                             setMobileMenuOpen(false);
@@ -268,7 +268,7 @@ const Header = () => {
                                 <>
                                     <Button 
                                         variant="outline" 
-                                        className="w-full py-6 rounded-lg border-gray-300 hover:bg-gray-100 hover:text-primary transition-colors"
+                                        className="w-full py-6 rounded-lg border-border hover:bg-muted hover:text-primary transition-colors" // Adjusted border and hover
                                         asChild
                                     >
                                         <Link 
@@ -301,7 +301,7 @@ const Header = () => {
                         variant="outline"
                         size="icon"
                         onClick={toggleTheme}
-                        className="rounded-full w-9 h-9 border-gray-300 hover:bg-gray-100 hover:text-primary transition-colors"
+                        className="rounded-full w-9 h-9 border-border hover:bg-muted hover:text-primary transition-colors" /* Adjusted border and hover */
                         aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
                     >
                         {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
@@ -310,39 +310,39 @@ const Header = () => {
                     {isAuthenticated && user ? (
                         <DropdownMenu>
                             <DropdownMenuTrigger className="focus:outline-none hover:opacity-80 transition-opacity">
-                                <Avatar className="h-9 w-9 border border-gray-200 ring-2 ring-primary/20">
+                                <Avatar className="h-9 w-9 border border-border ring-2 ring-primary/20"> {/* Adjusted border */}
                                     <AvatarImage src="" />
-                                    <AvatarFallback className="bg-gradient-to-br from-primary to-blue-600 text-white">
+                                    <AvatarFallback className="bg-gradient-to-br from-primary to-blue-600 text-primary-foreground"> {/* Adjusted text color */}
                                         {user.username.substring(0, 2).toUpperCase()}
                                     </AvatarFallback>
                                 </Avatar>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-56 p-2 rounded-lg shadow-lg border-gray-200">
-                                <div className="px-2 py-2 text-sm bg-gray-50 rounded-md mb-1">
+                            <DropdownMenuContent align="end" className="w-56 p-2 rounded-lg shadow-lg bg-popover border-border text-popover-foreground"> {/* Themed Dropdown */}
+                                <div className="px-2 py-2 text-sm bg-muted/50 rounded-md mb-1"> {/* Adjusted background */}
                                     <div className="font-medium">{user.username}</div>
                                     <div className="text-xs text-muted-foreground">{user.email}</div>
                                 </div>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="cursor-pointer rounded-md transition-colors hover:bg-gray-100" asChild>
+                                <DropdownMenuSeparator className="bg-border" /> {/* Themed Separator */}
+                                <DropdownMenuItem className="cursor-pointer rounded-md transition-colors hover:bg-muted" asChild> {/* Adjusted hover */}
                                     <Link to="/profile">
                                         <User className="mr-2 h-4 w-4" />
                                         <span>Trang cá nhân</span>
                                     </Link>
                                 </DropdownMenuItem>
                                 {user.role === 'admin' && (
-                                    <DropdownMenuItem className="cursor-pointer rounded-md transition-colors hover:bg-gray-100" asChild>
+                                    <DropdownMenuItem className="cursor-pointer rounded-md transition-colors hover:bg-muted" asChild> {/* Adjusted hover */}
                                         <Link to="/admin">
                                             <Shield className="mr-2 h-4 w-4" />
                                             <span>Quản trị</span>
                                         </Link>
                                     </DropdownMenuItem>
                                 )}
-                                <DropdownMenuItem className="cursor-pointer rounded-md transition-colors hover:bg-gray-100">
+                                <DropdownMenuItem className="cursor-pointer rounded-md transition-colors hover:bg-muted"> {/* Adjusted hover */}
                                     <Settings className="mr-2 h-4 w-4" />
                                     <span>Cài đặt</span>
                                 </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="cursor-pointer rounded-md transition-colors hover:bg-red-50 text-red-600 hover:text-red-700" onClick={handleLogout}>
+                                <DropdownMenuSeparator className="bg-border" /> {/* Themed Separator */}
+                                <DropdownMenuItem className="cursor-pointer rounded-md transition-colors hover:bg-destructive/20 text-destructive" onClick={handleLogout}> {/* Adjusted destructive item */}
                                     <LogOut className="mr-2 h-4 w-4" />
                                     <span>Đăng xuất</span>
                                 </DropdownMenuItem>
@@ -353,7 +353,7 @@ const Header = () => {
                             <Button 
                                 variant="outline" 
                                 size="sm" 
-                                className="rounded-full px-4 border-gray-300 hover:bg-gray-100 hover:text-primary transition-colors"
+                                className="rounded-full px-4 border-border hover:bg-muted hover:text-primary transition-colors" /* Adjusted border and hover */
                                 asChild
                             >
                                 <Link to="/auth/login">Đăng Nhập</Link>
