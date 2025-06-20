@@ -10,7 +10,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { DataTable } from '@/shared/components/ui/data-table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
-import { Avatar, AvatarFallback } from '@/shared/components/ui/avatar';
+import { Avatar } from '@/shared/components/ui/avatar';
 import { useToast } from '@/shared/components/ui/use-toast';
 import { commentsAPI } from '@/shared/services/api';
 import { format } from 'date-fns';
@@ -88,9 +88,6 @@ export function CommentsPage() {
         // Safe author name extraction with null checking
         const authorName = comment.author.name || 'Không xác định';
         
-            
-        const authorInitial = authorName.charAt(0).toUpperCase();
-        
         // Safe post title extraction with null checking
         const postTitle = !comment.postId 
           ? 'Không xác định' 
@@ -100,9 +97,13 @@ export function CommentsPage() {
         
         return (
           <div className="flex items-start gap-3">
-            <Avatar className="h-9 w-9">
-              <AvatarFallback>{authorInitial}</AvatarFallback>
-            </Avatar>
+            <Avatar
+              name={authorName}
+              useReactAvatar={true}
+              avatarSize="36"
+              avatarColor="#4F46E5"
+              avatarFgColor="#FFFFFF"
+            />
             <div>
               <div className="flex items-center gap-2">
                 <p className="font-medium">{authorName}</p>

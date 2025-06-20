@@ -23,6 +23,7 @@ function BlogDetailPage() {
 
   
 
+  console.log(user);
   useEffect(() => {
     if (!id) {
       setError('ID bài viết không hợp lệ');
@@ -80,7 +81,7 @@ function BlogDetailPage() {
       const response = await commentsAPI.createComment({
         content: commentText,
         postId: id!,
-        author: user.username
+        author: user
       }) as ApiComment;
       
       setComments(prev => [response, ...prev]);
@@ -301,7 +302,7 @@ function BlogDetailPage() {
                     {[...Array(3)].map((_, index) => (
                       <div key={index} className="animate-pulse">
                         <div className="flex space-x-3">
-                          <div className="w-10 h-10 bg-gray-300 rounded-full"></div>
+                          <div className="w-10 h-10 bg-gray-300 rounded-full flex-shrink-0"></div>
                           <div className="flex-1 space-y-2">
                             <div className="h-4 bg-gray-300 rounded w-1/4"></div>
                             <div className="h-4 bg-gray-300 rounded w-3/4"></div>
@@ -314,13 +315,15 @@ function BlogDetailPage() {
                   <div className="space-y-6">
                     {comments.map((comment) => (
                       <div key={comment._id} className="flex space-x-3">
-                        <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-                          <User className="w-5 h-5 text-gray-600" />
-                        </div>
+                        <img
+                          src="https://secure.gravatar.com/avatar/9be0621ecc601641f92b127feaf5f3ba6119d27f5e16ec987d1beeb8174c35dd?s=70&d=mm&r=g"
+                          alt={user?.username || 'Người dùng ẩn danh'}
+                          className="w-10 h-10 rounded-full flex-shrink-0"
+                        />
                         <div className="flex-1">
                           <div className="flex items-center space-x-2 mb-1">
                             <span className="font-medium text-gray-900">
-                              {comment.author.name || 'Người dùng ẩn danh'}
+                              {user?.username || 'Người dùng ẩn danh'}
                             </span>
                             <span className="text-sm text-gray-500">
                               {new Date(comment.createdAt).toLocaleDateString('vi-VN')}
@@ -331,6 +334,7 @@ function BlogDetailPage() {
                           </p>
                         </div>
                       </div>
+
                     ))}
                   </div>
                 ) : (

@@ -104,8 +104,10 @@ export interface ApiComment {
   content: string;
   author: {
     _id: string;
-    name: string;
+    username: string;
     email?: string;
+    role: 'admin' | 'user';
+  
   };
   postId: string | {
     _id: string;

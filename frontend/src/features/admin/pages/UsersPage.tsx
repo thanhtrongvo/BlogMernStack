@@ -19,6 +19,7 @@ import { Badge } from '@/shared/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog';
 import { Label } from '@/shared/components/ui/label';
+import { Avatar } from '@/shared/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { useToast } from '@/shared/components/ui/use-toast';
 import { usersAPI } from '@/shared/services/api';
@@ -213,9 +214,13 @@ export function UsersPage() {
       field: 'username' as keyof User,
       render: (value: string, user: User) => (
         <div className="flex items-center gap-3">
-          <div className="bg-gray-100 p-2 rounded-full">
-            <User className="h-5 w-5 text-gray-500" />
-          </div>
+          <Avatar
+            name={value}
+            useReactAvatar={true}
+            avatarSize="40"
+            avatarColor="#4F46E5"
+            avatarFgColor="#FFFFFF"
+          />
           <div>
             <p className="font-medium">{value}</p>
             <p className="text-xs text-muted-foreground">{user.email}</p>

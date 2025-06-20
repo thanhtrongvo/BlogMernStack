@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/sha
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
 import { Eye, FileText, MessageSquare, Users, TrendingUp, AlertCircle, Loader2, FolderOpen } from 'lucide-react';
 import { Badge } from '@/shared/components/ui/badge';
+import { Avatar } from '@/shared/components/ui/avatar';
 import { dashboardAPI, type ChartDataPoint, type TopPost } from '@/shared/services/dashboard';
 import { type DashboardStats, type ApiPost, type ApiComment } from '@/shared/types';
 import { useToast } from '@/shared/components/ui/use-toast';
@@ -403,12 +404,16 @@ export function DashboardPage() {
                   key={comment._id} 
                   className="flex items-start gap-3 pb-4 border-b border-gray-100 last:border-0 last:pb-0"
                 >
-                  <div className="flex-shrink-0 w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                    <Users className="h-4 w-4 text-gray-600" />
-                  </div>
+                  <Avatar
+                    name={typeof comment.author === 'object' ? comment.author.username : comment.author}
+                    useReactAvatar={true}
+                    avatarSize="32"
+                    avatarColor="#4F46E5"
+                    avatarFgColor="#FFFFFF"
+                  />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-medium">{typeof comment.author === 'object' ? comment.author.name : comment.author}</span>
+                      <span className="text-sm font-medium">{typeof comment.author === 'object' ? comment.author.username : comment.author}</span>
                       <Badge 
                         variant="default"
                         className="text-xs px-2 py-0"
