@@ -55,7 +55,7 @@ exports.createComment = async (req, res) => {
         const newComment = new Comment({
             postId,
             content,
-            author
+            author, // author is object ID of the user
         });
         await newComment.save();
         
