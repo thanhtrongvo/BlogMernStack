@@ -1,0 +1,61 @@
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: blog-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: blog
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - blog-network
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: blog-backend
+    restart: unless-stopped
+    ports:
+      - "5300:5300"
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017/blog
+      - JWT_SECRET=${JWT_SECRET:-sdfsadasffgdasdasmfasdasgqekwlkalskldjlsadjlaskdjlasdjlsajd}
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET:-accesSdfsadasffgdasdasmfasdasgqekwlkalskldjlsadjlas}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-refreshSdfsadasffgdasdasmfasdasgqekwlkalskldjlsadjlas}
+      - PORT=5300
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+    depends_on:
+      - mongodb
+    networks:
+      - blog-network
+    volumes:
+      - ./backend/uploads:/app/uploads
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: blog-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - blog-network
+
+volumes:
+  mongodb_data:
+    driver: local
+
+networks:
+  blog-network:
+    driver: bridge

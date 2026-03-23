@@ -1,71 +1,15 @@
 const express = require("express");
 const router = express.Router();
 const auth = require("../middleware/auth");
-const { 
-    login, 
-    register, 
-    refreshToken, 
-    logout, 
-    logoutAll 
+const {
+  login,
+  refreshToken,
+  logout,
+  logoutAll,
 } = require("../controllers/authController");
 
-/**
- * @swagger
- * /api/auth/register:
- *   post:
- *     summary: Đăng ký tài khoản người dùng mới
- *     tags:
- *       - Authentication
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - name
- *               - email
- *               - password
- *             properties:
- *               name:
- *                 type: string
- *                 example: Nguyễn Văn A
- *               email:
- *                 type: string
- *                 example: user@example.com
- *               password:
- *                 type: string
- *                 format: password
- *                 example: yourpassword
- *     responses:
- *       201:
- *         description: Đăng ký thành công
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Đăng ký thành công
- *                 user:
- *                   type: object
- *                   properties:
- *                     username:
- *                       type: string
- *                       example: Nguyễn Văn A
- *                     email:
- *                       type: string
- *                       example: user@example.com
- *                     password:
- *                       type: string
- *                       example: 123456 
- *       400:
- *         description: Thiếu thông tin hoặc email đã tồn tại
- *       500:
- *         description: Lỗi server
- */
-router.post("/register", register);
+// NOTE: /api/auth/register has been removed intentionally.
+// Admin accounts must be created directly via database (seed/CLI).
 
 /**
  * @swagger

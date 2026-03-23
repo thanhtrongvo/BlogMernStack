@@ -1,2 +1,2 @@
-// Blog feature exports
-export { BlogRoutes } from './BlogRoutes';
+// Blog feature exportsl
+export { BlogRoutes } from "./BlogRoutes";

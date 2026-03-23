@@ -9,7 +9,7 @@
 }
 
 .blog-content a:after {
-  content: '';
+  content: "";
   position: absolute;
   width: 100%;
   height: 1px;
@@ -36,13 +36,19 @@
   height: auto;
   border-radius: 0.5rem;
   margin: 2rem 0;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow:
+    0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 .blog-content img:hover {
   transform: translateY(-5px);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 /* Improved blockquote design */
@@ -88,7 +94,7 @@
 }
 
 .blog-content pre:before {
-  content: 'Code';
+  content: "Code";
   position: absolute;
   top: 0;
   right: 0;
@@ -171,7 +177,7 @@
 }
 
 .blog-content h1:after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: 0;
   left: 0;
@@ -193,7 +199,7 @@
 }
 
 .blog-content h2:after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: 0;
   left: 0;
@@ -221,7 +227,8 @@
   color: #2d3748;
 }
 
-.blog-content h5, .blog-content h6 {
+.blog-content h5,
+.blog-content h6 {
   font-size: 1.125rem;
   margin-top: 1.25rem;
   margin-bottom: 0.5rem;
@@ -231,7 +238,8 @@
 }
 
 /* Enhanced lists */
-.blog-content ul, .blog-content ol {
+.blog-content ul,
+.blog-content ol {
   padding-left: 1.5rem;
   margin: 1.5rem 0;
 }
@@ -246,7 +254,7 @@
 }
 
 .blog-content ul li:before {
-  content: '•';
+  content: "•";
   position: absolute;
   left: 0;
   color: #4299e1;
@@ -266,7 +274,7 @@
 }
 
 .blog-content ol li:before {
-  content: counter(item) '.';
+  content: counter(item) ".";
   position: absolute;
   left: 0;
   color: #4299e1;
@@ -277,7 +285,8 @@
   margin-bottom: 0.75rem;
 }
 
-.blog-content li > ul, .blog-content li > ol {
+.blog-content li > ul,
+.blog-content li > ol {
   margin-top: 0.75rem;
   margin-bottom: 0;
 }
@@ -310,7 +319,9 @@
   border: 1px solid #e2e8f0;
   padding: 1.25rem;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 .table-of-contents:hover {
@@ -419,25 +430,25 @@ body {
   .blog-content h1 {
     font-size: 2rem;
   }
-  
+
   .blog-content h2 {
     font-size: 1.75rem;
   }
-  
+
   .blog-content h3 {
     font-size: 1.5rem;
   }
-  
+
   .blog-main-content {
     padding: 1.5rem;
     box-shadow: none;
     border-radius: 0;
   }
-  
+
   .blog-detail-container {
     padding: 0 1rem;
   }
-  
+
   .blog-content pre {
     margin-left: -1.5rem;
     margin-right: -1.5rem;
@@ -466,7 +477,9 @@ body {
   background-color: #f8fafc;
   margin-bottom: 1.5rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .comment-item:hover {
@@ -479,7 +492,9 @@ body {
   border: 1px solid #e2e8f0;
   padding: 1rem;
   min-height: 120px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .comment-form textarea:focus {
@@ -494,7 +509,9 @@ body {
   font-weight: 600;
   padding: 0.75rem 1.5rem;
   border-radius: 0.5rem;
-  transition: background-color 0.2s ease, transform 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
 }
 
 .comment-form button:hover:not(:disabled) {

@@ -24,7 +24,7 @@ exports.getPostById = async (req, res) => {
 }
 
 exports.createPost = async (req, res) => {
-    const { title, content, image, category, status = true } = req.body;
+    const { title, content, image, category, status = true, slug, sourceUrl, description } = req.body;
 
     try {
         // Check if user exists in request object
@@ -39,14 +39,21 @@ exports.createPost = async (req, res) => {
         }
 
         // Create new post
-        const newPost = new Post({
+        const postData = {
             title,
             content,
             image,
             author: user.username,
             category,
-            status: Boolean(status)
-        });
+            status: Boolean(status),
+        };
+
+        // Add optional crawler fields if provided
+        if (slug) postData.slug = slug;
+        if (sourceUrl) postData.sourceUrl = sourceUrl;
+        if (description) postData.description = description;
+
+        const newPost = new Post(postData);
 
         // Save the post
         await newPost.save();

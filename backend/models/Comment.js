@@ -6,6 +6,10 @@ const CommentSchema = new mongoose.Schema({
         ref: 'Post',
         required: true,
     },
+    authorName: {
+        type: String,
+        required: true,
+    },
     content: {
         type: String,
         required: true,

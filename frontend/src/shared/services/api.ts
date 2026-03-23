@@ -285,7 +285,7 @@ export const commentsAPI = {
     return fetchAPI('/api/comments', {
       method: 'POST',
       body: commentData,
-      requireAuth: true,
+      requireAuth: false,
     });
   },
   

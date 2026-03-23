@@ -30,14 +30,13 @@ exports.getCommentById = async (req, res) => {
 }
 
 exports.createComment = async (req, res) => {
-    const { postId, content } = req.body;
-    const author = req.user.username;
+    const { postId, content, authorName } = req.body;
 
     try {
         const newComment = new Comment({
             postId,
             content,
-            author
+            authorName
         });
         await newComment.save();
         res.status(201).json(newComment);

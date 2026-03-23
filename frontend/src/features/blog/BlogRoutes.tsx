@@ -1,5 +1,5 @@
-import { Routes, Route } from 'react-router-dom';
-import BlogDetailPage from './pages/BlogDetailPage';
+import { Routes, Route } from "react-router-dom";
+import BlogDetailPage from "./pages/BlogDetailPage";
 
 export const BlogRoutes = () => {
   return (

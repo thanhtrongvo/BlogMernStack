@@ -1,34 +1,41 @@
-import { useState, useEffect } from 'react';
-import { 
-  Search, 
-  Filter, 
-  Check, 
-  X, 
-  Trash, 
+import { useState, useEffect } from "react";
+import {
+  Search,
+  Filter,
+  Check,
+  X,
+  Trash,
   MessageSquare,
   AlertTriangle,
-  Loader2
-} from 'lucide-react';
-import { Button } from '@/shared/components/ui/button';
-import { Input } from '@/shared/components/ui/input';
-import { DataTable } from '@/shared/components/ui/data-table';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
-import { Badge } from '@/shared/components/ui/badge';
-import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
-import { Avatar, AvatarFallback } from '@/shared/components/ui/avatar';
-import { useToast } from '@/shared/components/ui/use-toast';
-import { commentsAPI } from '@/shared/services/api';
-import { format } from 'date-fns';
+  Loader2,
+} from "lucide-react";
+import { Button } from "@/shared/components/ui/button";
+import { Input } from "@/shared/components/ui/input";
+import { DataTable } from "@/shared/components/ui/data-table";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/shared/components/ui/card";
+import { Badge } from "@/shared/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
+import { Avatar, AvatarFallback } from "@/shared/components/ui/avatar";
+import { useToast } from "@/shared/components/ui/use-toast";
+import { commentsAPI } from "@/shared/services/api";
+import { format } from "date-fns";
 
 // Define Comment interface
 interface Comment {
   _id: string;
   content: string;
-  author: {
+  author?: {
     _id: string;
     username: string;
     email: string;
   };
+  authorName?: string;
   postId: {
     _id: string;
     title: string;
@@ -41,8 +48,8 @@ interface Comment {
 export function CommentsPage() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState("all");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -58,7 +65,7 @@ export function CommentsPage() {
       toast({
         title: "Lỗi",
         description: "Không thể tải danh sách bình luận",
-        variant: "destructive"
+        variant: "destructive",
       });
       console.error("Error fetching comments:", error);
     } finally {
@@ -78,7 +85,7 @@ export function CommentsPage() {
       toast({
         title: "Lỗi",
         description: "Không thể phê duyệt bình luận",
-        variant: "destructive"
+        variant: "destructive",
       });
       console.error("Error approving comment:", error);
     }
@@ -96,7 +103,7 @@ export function CommentsPage() {
       toast({
         title: "Lỗi",
         description: "Không thể từ chối bình luận",
-        variant: "destructive"
+        variant: "destructive",
       });
       console.error("Error rejecting comment:", error);
     }
@@ -114,23 +121,31 @@ export function CommentsPage() {
       toast({
         title: "Lỗi",
         description: "Không thể xóa bình luận",
-        variant: "destructive"
+        variant: "destructive",
       });
       console.error("Error deleting comment:", error);
     }
   };
-  
+
   // Filter comments based on search term and active tab
-  const filteredComments = comments.filter(comment => {
-    const matchesSearch = comment.content.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          comment.author.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          comment.postId.title.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    if (activeTab === 'all') return matchesSearch;
-    if (activeTab === 'approved') return matchesSearch && comment.status === true;
-    if (activeTab === 'pending') return matchesSearch && comment.status === false;
-    if (activeTab === 'reported') return matchesSearch && comment.isReported === true;
-    
+  const filteredComments = comments.filter((comment) => {
+    const authorNameValue =
+      comment.authorName || comment.author?.username || "Khách";
+    const matchesSearch =
+      comment.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      authorNameValue.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (comment.postId?.title || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+
+    if (activeTab === "all") return matchesSearch;
+    if (activeTab === "approved")
+      return matchesSearch && comment.status === true;
+    if (activeTab === "pending")
+      return matchesSearch && comment.status === false;
+    if (activeTab === "reported")
+      return matchesSearch && comment.isReported === true;
+
     return matchesSearch;
   });
 
@@ -144,7 +159,7 @@ export function CommentsPage() {
         </Badge>
       );
     }
-    
+
     if (status) {
       return (
         <Badge variant="success" className="flex items-center gap-1">
@@ -153,7 +168,7 @@ export function CommentsPage() {
         </Badge>
       );
     }
-    
+
     return (
       <Badge variant="outline" className="flex items-center gap-1">
         <X className="h-3 w-3" />
@@ -165,57 +180,63 @@ export function CommentsPage() {
   // Table columns definition
   const columns = [
     {
-      title: 'Nội dung',
-      field: 'content' as keyof Comment,
-      render: (value: string, comment: Comment) => (
-        <div className="flex items-start gap-3">
-          <Avatar className="h-9 w-9">
-            <AvatarFallback>{comment.author.username.charAt(0).toUpperCase()}</AvatarFallback>
-          </Avatar>
-          <div>
-            <div className="flex items-center gap-2">
-              <p className="font-medium">{comment.author.username}</p>
-              {getStatusBadge(comment.status, comment.isReported)}
-            </div>
-            <p className="text-sm mt-1 line-clamp-2">{value}</p>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-xs text-muted-foreground">
-                {format(new Date(comment.createdAt), 'dd/MM/yyyy HH:mm')}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                Bài viết: {comment.postId.title}
-              </span>
+      title: "Nội dung",
+      field: "content" as keyof Comment,
+      render: (value: string, comment: Comment) => {
+        const displayName =
+          comment.authorName || comment.author?.username || "Khách";
+        return (
+          <div className="flex items-start gap-3">
+            <Avatar className="h-9 w-9">
+              <AvatarFallback>
+                {displayName.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="font-medium">{displayName}</p>
+                {getStatusBadge(comment.status, comment.isReported)}
+              </div>
+              <p className="text-sm mt-1 line-clamp-2">{value}</p>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-xs text-muted-foreground">
+                  {format(new Date(comment.createdAt), "dd/MM/yyyy HH:mm")}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  Bài viết: {comment.postId?.title || "Không rõ"}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
-      ),
+        );
+      },
     },
   ];
 
   const commentActions = (comment: Comment) => (
     <div className="flex items-center gap-2">
       {!comment.status && (
-        <Button 
-          variant="ghost" 
-          size="icon" 
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={() => handleApproveComment(comment._id)}
         >
           <Check className="h-4 w-4 text-green-500" />
         </Button>
       )}
-      
+
       {comment.status && (
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           size="icon"
           onClick={() => handleRejectComment(comment._id)}
         >
           <X className="h-4 w-4 text-orange-500" />
         </Button>
       )}
-      
-      <Button 
-        variant="ghost" 
+
+      <Button
+        variant="ghost"
         size="icon"
         onClick={() => {
           if (confirm("Bạn có chắc chắn muốn xóa bình luận này không?")) {
@@ -227,16 +248,18 @@ export function CommentsPage() {
       </Button>
     </div>
   );
-  
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Quản lý bình luận</h1>
-          <p className="text-muted-foreground">Xem và quản lý bình luận trên blog của bạn</p>
+          <p className="text-muted-foreground">
+            Xem và quản lý bình luận trên blog của bạn
+          </p>
         </div>
       </div>
-      
+
       <Card>
         <CardHeader className="pb-3">
           <CardTitle>Danh sách bình luận</CardTitle>
@@ -261,18 +284,22 @@ export function CommentsPage() {
                 Lọc bình luận
               </Button>
             </div>
-            
+
             <Tabs defaultValue="all" onValueChange={setActiveTab}>
               <TabsList>
-                <TabsTrigger value="all">Tất cả ({comments.length})</TabsTrigger>
+                <TabsTrigger value="all">
+                  Tất cả ({comments.length})
+                </TabsTrigger>
                 <TabsTrigger value="approved">
-                  Đã duyệt ({comments.filter(c => c.status === true).length})
+                  Đã duyệt ({comments.filter((c) => c.status === true).length})
                 </TabsTrigger>
                 <TabsTrigger value="pending">
-                  Chờ duyệt ({comments.filter(c => c.status === false).length})
+                  Chờ duyệt ({comments.filter((c) => c.status === false).length}
+                  )
                 </TabsTrigger>
                 <TabsTrigger value="reported">
-                  Báo cáo ({comments.filter(c => c.isReported === true).length})
+                  Báo cáo (
+                  {comments.filter((c) => c.isReported === true).length})
                 </TabsTrigger>
               </TabsList>
             </Tabs>
@@ -289,7 +316,7 @@ export function CommentsPage() {
               actions={commentActions}
             />
           )}
-          
+
           {!loading && filteredComments.length === 0 && (
             <div className="text-center py-12">
               <div className="mx-auto w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-4">
@@ -299,12 +326,12 @@ export function CommentsPage() {
               <p className="text-muted-foreground mt-1">
                 Không có bình luận nào khớp với bộ lọc hiện tại
               </p>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="mt-4"
                 onClick={() => {
-                  setSearchTerm('');
-                  setActiveTab('all');
+                  setSearchTerm("");
+                  setActiveTab("all");
                 }}
               >
                 Xóa bộ lọc
