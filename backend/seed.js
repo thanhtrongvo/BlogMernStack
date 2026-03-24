@@ -1,3 +1,4 @@
+const path = require('path');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs'); // using bcryptjs as it's often more compatible across OS
 const User = require('./models/User');
@@ -5,7 +6,10 @@ const Category = require('./models/Category');
 const Post = require('./models/Post');
 const Comment = require('./models/Comment');
 
-const MONGO_URI = 'mongodb://127.0.0.1:27017/blogmernstack';
+// Load environment variables from backend/.env if available
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
+
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/blogmernstack';
 
 const seedDatabase = async () => {
     try {
@@ -102,16 +106,19 @@ const seedDatabase = async () => {
         const commentsData = [
             {
                 postId: posts[0]._id, // MERN Stack
+                authorName: 'Nguyễn Minh',
                 content: 'Bài viết rất hữu ích cho người mới bắt đầu như mình. Cảm ơn tác giả!',
                 status: true
             },
             {
                 postId: posts[0]._id,
+                authorName: 'Lan Anh',
                 content: 'Cho mình hỏi tài liệu tham khảo bạn lấy từ đâu vậy?',
                 status: true
             },
             {
                 postId: posts[1]._id, // VS Code
+                authorName: 'Trung Kiên',
                 content: 'Mình vừa cài thử extension bạn giới thiệu, thấy khá ngon!',
                 status: true
             }
