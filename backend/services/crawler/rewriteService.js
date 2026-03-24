@@ -1,24 +1,9 @@
 const config = require('./config');
-const { execSync } = require('child_process');
 
 /**
- * Rewrite article content using GitHub Copilot / GitHub Models API.
+ * Rewrite article content using Ollama models (e.g., qwen3-coder-next:cloud).
  * Translates to Vietnamese, optimizes for SEO, outputs Markdown.
  */
-
-/**
- * Get GitHub token from gh CLI
- * @returns {string} GitHub OAuth token
- */
-function getGitHubToken() {
-    try {
-        const token = execSync('gh auth token', { encoding: 'utf8' }).trim();
-        return token;
-    } catch (error) {
-        console.error('[Rewrite] Failed to get GitHub token:', error.message);
-        throw new Error('GitHub authentication required. Run: gh auth login');
-    }
-}
 
 /**
  * Sleep for a given number of milliseconds
@@ -29,58 +14,37 @@ function sleep(ms) {
 }
 
 /**
- * Call GitHub Models API (Copilot) to generate text
- * @param {string} prompt - The prompt to send
- * @param {string} systemPrompt - System instructions
- * @param {number} retries - Number of retries on rate limit
- * @returns {Promise<string>} Generated text response
+ * Call Ollama API to generate text
+ * @param {string} prompt - Prompt content
+ * @returns {Promise<string>} Generated response
  */
-async function callGitHubModels(prompt, systemPrompt = '', retries = 3) {
-    const token = getGitHubToken();
-    const model = process.env.GITHUB_MODEL || 'gpt-4o';
-    
-    const messages = [];
-    if (systemPrompt) {
-        messages.push({ role: 'system', content: systemPrompt });
-    }
-    messages.push({ role: 'user', content: prompt });
-
-    for (let attempt = 1; attempt <= retries; attempt++) {
-        try {
-            const response = await fetch('https://models.github.ai/inference/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                    model: model,
-                    messages: messages,
+async function callOllama(prompt) {
+    try {
+        const response = await fetch(`${config.ollama.host}/api/generate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: config.ollama.model,
+                prompt,
+                stream: false,
+                options: {
                     temperature: 0.7,
-                    max_tokens: 4096,
-                }),
-            });
+                    top_p: 0.9,
+                    num_predict: 4096,
+                },
+            }),
+        });
 
-            if (response.status === 429) {
-                const waitTime = Math.pow(2, attempt) * 10000; // Exponential backoff: 20s, 40s, 80s
-                console.log(`[Rewrite] Rate limited. Waiting ${waitTime/1000}s before retry ${attempt}/${retries}...`);
-                await sleep(waitTime);
-                continue;
-            }
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`GitHub Models API error: ${response.status} - ${errorText}`);
-            }
-
-            const data = await response.json();
-            return data.choices?.[0]?.message?.content || '';
-        } catch (error) {
-            if (attempt === retries) {
-                console.error('[Rewrite] GitHub Models API error:', error.message);
-                throw error;
-            }
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Ollama API error: ${response.status} - ${errorText}`);
         }
+
+        const data = await response.json();
+        return data.response || '';
+    } catch (error) {
+        console.error('[Rewrite] Ollama API error:', error.message);
+        throw error;
     }
 }
 
@@ -130,14 +94,18 @@ Yêu cầu:
 - Không thêm thông tin sai lệch
 - Chỉ trả về nội dung Markdown, không thêm bất kỳ giải thích nào khác`;
 
-    const rewrittenContent = await callGitHubModels(rewritePrompt, systemPrompt);
+    const rewrittenContent = await callOllama(`${systemPrompt}
+
+${rewritePrompt}`);
 
     // Step 2: Generate Vietnamese title
     const titlePrompt = `Hãy viết lại tiêu đề sau bằng tiếng Việt, ngắn gọn, hấp dẫn, tối ưu SEO. Chỉ trả về tiêu đề, không thêm gì khác.
 
 Tiêu đề gốc: ${article.headline}`;
 
-    const rewrittenTitle = (await callGitHubModels(titlePrompt, systemPrompt)).trim().replace(/^["']|["']$/g, '');
+    const rewrittenTitle = (await callOllama(`${systemPrompt}
+
+${titlePrompt}`)).trim().replace(/^["']|["']$/g, '');
 
     // Step 3: Generate SEO description (~160 characters)
     const descPrompt = `Tóm tắt bài viết sau thành MỘT đoạn mô tả SEO meta description bằng tiếng Việt, tối đa 160 ký tự. Chỉ trả về đoạn mô tả, không thêm gì khác.
@@ -147,7 +115,9 @@ Tiêu đề: ${rewrittenTitle}
 Nội dung:
 ${rewrittenContent.substring(0, 1000)}`;
 
-    let description = (await callGitHubModels(descPrompt, systemPrompt)).trim().replace(/^["']|["']$/g, '');
+    let description = (await callOllama(`${systemPrompt}
+
+${descPrompt}`)).trim().replace(/^["']|["']$/g, '');
     // Ensure description is within ~160 chars
     if (description.length > 165) {
         description = description.substring(0, 157) + '...';
@@ -181,7 +151,7 @@ ${rewrittenContent.substring(0, 1000)}`;
  * @returns {Promise<Array>} Array of rewritten articles
  */
 async function rewriteAllArticles(articles) {
-    console.log(`[Rewrite] Rewriting ${articles.length} articles using GitHub Copilot...`);
+    console.log(`[Rewrite] Rewriting ${articles.length} articles using Ollama model ${config.ollama.model}...`);
     const rewritten = [];
     const delayBetweenArticles = 5000; // 5 seconds between articles to avoid rate limits
 
