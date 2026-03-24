@@ -732,9 +732,9 @@ export default function BlogDetailPage() {
           </header>
 
           {/* ===== MAIN CONTENT GRID ===== */}
-          <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
+          <div className="flex flex-col lg:flex-row gap-8">
             {/* Content Column */}
-            <div className="min-w-0">
+            <div className="flex-1 min-w-0">
               {/* Share Bar */}
               <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4">
                 <ShareButtons onShare={handleShare} />
@@ -749,7 +749,7 @@ export default function BlogDetailPage() {
 
               {/* Article Content */}
               <article
-                className="blog-content"
+                className="blog-content rounded-xl border border-slate-200 bg-white p-6 lg:p-8"
                 dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
               />
 
@@ -762,7 +762,7 @@ export default function BlogDetailPage() {
             </div>
 
             {/* Sidebar Column */}
-            <aside className="hidden lg:block">
+            <aside className="hidden lg:block w-80 flex-shrink-0">
               <div className="sticky top-24 space-y-6">
                 <TableOfContents items={tocItems} />
                 <RecentPostsSidebar posts={latestPosts} currentPostId={post._id} />

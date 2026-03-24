@@ -59,13 +59,22 @@
   column-count: unset !important;
   column-gap: unset !important;
   display: block !important;
-  width: 100%;
-  max-width: 100%;
+  position: relative !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  min-height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
   overflow-wrap: break-word;
   word-wrap: break-word;
   color: #334155;
   font-size: 1.0625rem;
-  line-height: 1.75;
+  line-height: 1.8;
+}
+
+.blog-content * {
+  max-width: 100%;
 }
 
 /* Preserve TinyMCE inline styles */
