@@ -92,7 +92,7 @@ async function publishArticle(article) {
         content: article.content,
         image: article.thumbnailUrl || 'https://placehold.co/800x400?text=No+Image',
         category: config.blog.defaultCategory,
-        status: false, // Draft mode (Boolean false = draft in current schema)
+        status: true, // Auto-publish (true = published immediately, no approval needed)
         slug: article.slug,
         sourceUrl: article.sourceUrl,
         description: article.description,
