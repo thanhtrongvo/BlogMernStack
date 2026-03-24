@@ -18,6 +18,7 @@ import { Badge } from '@/shared/components/ui/badge';
 import { Label } from '@/shared/components/ui/label';
 import { useToast } from '@/shared/components/ui/use-toast';
 import { postsAPI, categoriesAPI } from '@/shared/services/api';
+import { convertMarkdownToHtml } from '@/shared/services/markdownUtils';
 import { format } from 'date-fns';
 
 interface Category {
@@ -66,9 +67,10 @@ export function PostEditorPage() {
         // If editing, fetch post data
         if (isEditing) {
           const postData = await postsAPI.getPostById(id) as any;
+          const editorContent = convertMarkdownToHtml(postData.content || '');
           setFormData({
             title: postData.title,
-            content: postData.content,
+            content: editorContent,
             image: postData.image,
             category: postData.category?._id || '',
             status: postData.status
@@ -76,7 +78,7 @@ export function PostEditorPage() {
           
           // If editor is loaded, set content
           if (editorRef.current) {
-            editorRef.current.setContent(postData.content);
+            editorRef.current.setContent(editorContent);
           }
         }
       } catch (error) {

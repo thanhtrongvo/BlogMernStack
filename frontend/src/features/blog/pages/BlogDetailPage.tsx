@@ -122,6 +122,7 @@ export default function BlogDetailPage() {
 
         // Get post details from API
         const postData = (await postsAPI.getPostById(id)) as ApiPost;
+        const normalizedContent = convertHtmlToMarkdown(postData.content || "");
 
         // Track post view
         await postsAPI.trackPostView(id);
@@ -130,7 +131,7 @@ export default function BlogDetailPage() {
         setPost({
           _id: postData._id,
           title: postData.title,
-          content: postData.content || "", // Ensure content is a string
+          content: normalizedContent,
           image: postData.image || "",
           author: {
             _id: typeof postData.author === "object" && postData.author !== null ? postData.author._id || "unknown" : "unknown",
@@ -151,8 +152,7 @@ export default function BlogDetailPage() {
         });
 
         // Extract headings from content for table of contents
-        const markdownContent = convertHtmlToMarkdown(postData.content || "");
-        setHeadings(extractHeadings(markdownContent));
+        setHeadings(extractHeadings(normalizedContent));
 
         // Get comments for this post
         try {
@@ -609,7 +609,7 @@ export default function BlogDetailPage() {
                     },
                   }}
                 >
-                  {convertHtmlToMarkdown(post.content)}
+                  {post.content}
                 </ReactMarkdown>
               </div>
 
