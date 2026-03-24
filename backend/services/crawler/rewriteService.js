@@ -78,7 +78,7 @@ async function rewriteArticle(article) {
     const systemPrompt = `Bạn là một chuyên gia viết blog công nghệ Việt Nam. Nhiệm vụ của bạn là viết lại các bài báo công nghệ tiếng Anh thành tiếng Việt với văn phong lôi cuốn, chuyên nghiệp và tối ưu SEO.`;
 
     // Step 1: Rewrite the full article content
-    const rewritePrompt = `Hãy viết lại bài báo sau bằng tiếng Việt với văn phong lôi cuốn, dễ hiểu. Tối ưu SEO cho các từ khóa chính. Định dạng đầu ra là Markdown.
+    const rewritePrompt = `Hãy viết lại bài báo sau bằng tiếng Việt với văn phong lôi cuốn, dễ hiểu. Tối ưu SEO cho các từ khóa chính. Định dạng đầu ra là HTML.
 
 Tiêu đề gốc: ${article.headline}
 
@@ -88,15 +88,22 @@ ${article.articleBody}
 Yêu cầu:
 - Viết lại hoàn toàn bằng tiếng Việt, không dịch máy
 - Giữ nguyên thông tin kỹ thuật chính xác
-- Thêm heading (##, ###) để chia đoạn rõ ràng
+- Dùng HTML tags: <h2>, <h3> cho heading, <p> cho paragraphs, <strong> cho bold, <em> cho italic, <ul>/<li> cho lists, <blockquote> cho quotes
 - Văn phong tự nhiên, hấp dẫn, dễ đọc
 - Tối ưu SEO: sử dụng từ khóa chính trong heading và đoạn mở đầu
 - Không thêm thông tin sai lệch
-- Chỉ trả về nội dung Markdown, không thêm bất kỳ giải thích nào khác`;
+- Chỉ trả về nội dung HTML, không wrap trong \`\`\`html\`\`\` code block, không thêm <html>, <head>, <body> tags`;
 
-    const rewrittenContent = await callOllama(`${systemPrompt}
+    let rewrittenContent = await callOllama(`${systemPrompt}
 
 ${rewritePrompt}`);
+
+    // Clean up content: remove code block wrappers if present
+    rewrittenContent = rewrittenContent
+        .replace(/^```html\s*/i, '')
+        .replace(/^```\s*/i, '')
+        .replace(/\s*```$/i, '')
+        .trim();
 
     // Step 2: Generate Vietnamese title
     const titlePrompt = `Hãy viết lại tiêu đề sau bằng tiếng Việt, ngắn gọn, hấp dẫn, tối ưu SEO. Chỉ trả về tiêu đề, không thêm gì khác.
