@@ -20,8 +20,6 @@ import { Button } from "../../../shared/components/ui/button";
 import { useToast } from "../../../shared/components/ui/use-toast";
 import { useAuth } from "../../../shared/contexts/AuthContext";
 import { commentsAPI, postsAPI } from "../../../shared/services/api";
-import { convertHtmlToMarkdown } from "../../../shared/services/markdownUtils";
-import { marked } from "marked";
 
 // ============ INTERFACES ============
 interface Author {
@@ -100,30 +98,49 @@ const slugify = (text: string): string =>
     .replace(/-+/g, "-")
     .replace(/^-+|-+$/g, "");
 
+/**
+ * Decode HTML entities (Vietnamese + common)
+ */
+function decodeHtmlEntities(html: string): string {
+  const textarea = document.createElement("textarea");
+  textarea.innerHTML = html;
+  return textarea.value;
+}
+
+/**
+ * Extract TOC from HTML content
+ */
 const extractTOC = (html: string): TOCItem[] => {
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, "text/html");
-  const headings = doc.querySelectorAll("h2, h3");
+  const headings = doc.querySelectorAll("h1, h2, h3");
   const toc: TOCItem[] = [];
 
   headings.forEach((heading) => {
     const text = heading.textContent || "";
     const id = slugify(text);
-    const level = heading.tagName === "H2" ? 2 : 3;
-    toc.push({ id, text, level });
+    const level = parseInt(heading.tagName[1], 10);
+    if (text.trim()) {
+      toc.push({ id, text: text.trim(), level });
+    }
   });
 
   return toc;
 };
 
+/**
+ * Add IDs to headings for anchor navigation
+ */
 const addIdsToHeadings = (html: string): string => {
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, "text/html");
-  const headings = doc.querySelectorAll("h2, h3, h4, h5, h6");
+  const headings = doc.querySelectorAll("h1, h2, h3, h4, h5, h6");
 
   headings.forEach((heading) => {
     const text = heading.textContent || "";
-    heading.id = slugify(text);
+    if (!heading.id && text.trim()) {
+      heading.id = slugify(text);
+    }
   });
 
   return doc.body.innerHTML;
@@ -234,7 +251,7 @@ function TableOfContents({ items }: { items: TOCItem[] }) {
       </h3>
       <ul className="space-y-2">
         {items.map((item) => (
-          <li key={item.id} style={{ paddingLeft: item.level === 3 ? "1rem" : 0 }}>
+          <li key={item.id} style={{ paddingLeft: item.level > 1 ? `${(item.level - 1) * 0.75}rem` : 0 }}>
             <a
               href={`#${item.id}`}
               className={`block text-sm transition-colors ${
@@ -458,28 +475,22 @@ export default function BlogDetailPage() {
   const [hasLiked, setHasLiked] = useState(false);
   const [latestPosts, setLatestPosts] = useState<LatestPost[]>([]);
 
-  // Convert content to HTML and sanitize
+  // Process content: decode entities, add heading IDs, sanitize
   const { sanitizedHtml, tocItems, readingTime } = useMemo(() => {
     if (!post?.content) {
       return { sanitizedHtml: "", tocItems: [], readingTime: 1 };
     }
 
-    // Convert markdown to HTML if needed
-    let html = post.content;
-    
-    // Check if content is markdown (from our conversion)
-    const isMarkdown = !html.trim().startsWith("<") || /^#{1,6}\s/m.test(html);
-    if (isMarkdown) {
-      html = marked.parse(html, { gfm: true, breaks: true }) as string;
-    }
+    // Decode HTML entities first
+    let html = decodeHtmlEntities(post.content);
 
-    // Add IDs to headings for TOC
+    // Add IDs to headings for TOC navigation
     html = addIdsToHeadings(html);
 
-    // Sanitize HTML
+    // Sanitize HTML while preserving styles
     const sanitized = DOMPurify.sanitize(html, {
       ADD_TAGS: ["iframe"],
-      ADD_ATTR: ["allow", "allowfullscreen", "frameborder", "scrolling", "target"],
+      ADD_ATTR: ["allow", "allowfullscreen", "frameborder", "scrolling", "target", "style", "data-path-to-node"],
     });
 
     return {
@@ -498,7 +509,6 @@ export default function BlogDetailPage() {
       try {
         // Fetch post
         const postData = (await postsAPI.getPostById(id)) as ApiPost;
-        const normalizedContent = convertHtmlToMarkdown(postData.content || "");
 
         // Track view
         await postsAPI.trackPostView(id);
@@ -512,7 +522,7 @@ export default function BlogDetailPage() {
         setPost({
           _id: postData._id,
           title: postData.title,
-          content: normalizedContent,
+          content: postData.content || "", // Keep original HTML!
           image: postData.image || "",
           author: {
             _id: authorObj?._id || "unknown",
@@ -737,20 +747,22 @@ export default function BlogDetailPage() {
                 </Button>
               </div>
 
-              {/* Article Content */}
+              {/* Article Content - Using prose for typography */}
               <article
-                className="prose prose-slate lg:prose-xl max-w-none
+                className="blog-content prose prose-slate lg:prose-lg max-w-none
                   prose-headings:scroll-mt-24 prose-headings:font-bold prose-headings:text-slate-900
+                  prose-h1:text-3xl prose-h1:mb-6
                   prose-h2:text-2xl prose-h2:text-blue-700 prose-h2:mt-10 prose-h2:mb-4
                   prose-h3:text-xl prose-h3:text-blue-600 prose-h3:mt-8 prose-h3:mb-3
-                  prose-p:text-slate-700 prose-p:leading-relaxed
+                  prose-p:text-slate-700 prose-p:leading-relaxed prose-p:mb-4
                   prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline
-                  prose-strong:text-slate-900
-                  prose-blockquote:border-l-blue-500 prose-blockquote:bg-blue-50 prose-blockquote:py-1 prose-blockquote:px-4 prose-blockquote:rounded-r-lg prose-blockquote:not-italic
+                  prose-strong:text-slate-900 prose-strong:font-semibold
+                  prose-blockquote:border-l-blue-500 prose-blockquote:bg-blue-50 prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:rounded-r-lg prose-blockquote:not-italic prose-blockquote:text-slate-700
                   prose-code:bg-slate-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-pink-600 prose-code:before:content-none prose-code:after:content-none
                   prose-pre:bg-slate-900 prose-pre:rounded-xl
-                  prose-img:rounded-xl prose-img:shadow-lg
-                  prose-li:marker:text-blue-500"
+                  prose-img:rounded-xl prose-img:shadow-lg prose-img:my-6
+                  prose-ul:my-4 prose-ol:my-4
+                  prose-li:marker:text-blue-500 prose-li:my-1"
                 dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
               />
 
