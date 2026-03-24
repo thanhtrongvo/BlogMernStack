@@ -53,6 +53,21 @@
 
 
 /* ============ BLOG CONTENT STYLES ============ */
+/* CRITICAL: Reset any column/grid layout that may break content */
+.blog-content {
+  columns: unset !important;
+  column-count: unset !important;
+  column-gap: unset !important;
+  display: block !important;
+  width: 100%;
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  color: #334155;
+  font-size: 1.0625rem;
+  line-height: 1.75;
+}
+
 /* Preserve TinyMCE inline styles */
 .blog-content [style*="text-align: justify"] {
   text-align: justify !important;

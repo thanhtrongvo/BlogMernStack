@@ -747,22 +747,9 @@ export default function BlogDetailPage() {
                 </Button>
               </div>
 
-              {/* Article Content - Using prose for typography */}
+              {/* Article Content */}
               <article
-                className="blog-content prose prose-slate lg:prose-lg max-w-none
-                  prose-headings:scroll-mt-24 prose-headings:font-bold prose-headings:text-slate-900
-                  prose-h1:text-3xl prose-h1:mb-6
-                  prose-h2:text-2xl prose-h2:text-blue-700 prose-h2:mt-10 prose-h2:mb-4
-                  prose-h3:text-xl prose-h3:text-blue-600 prose-h3:mt-8 prose-h3:mb-3
-                  prose-p:text-slate-700 prose-p:leading-relaxed prose-p:mb-4
-                  prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline
-                  prose-strong:text-slate-900 prose-strong:font-semibold
-                  prose-blockquote:border-l-blue-500 prose-blockquote:bg-blue-50 prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:rounded-r-lg prose-blockquote:not-italic prose-blockquote:text-slate-700
-                  prose-code:bg-slate-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-pink-600 prose-code:before:content-none prose-code:after:content-none
-                  prose-pre:bg-slate-900 prose-pre:rounded-xl
-                  prose-img:rounded-xl prose-img:shadow-lg prose-img:my-6
-                  prose-ul:my-4 prose-ol:my-4
-                  prose-li:marker:text-blue-500 prose-li:my-1"
+                className="blog-content"
                 dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
               />
 
