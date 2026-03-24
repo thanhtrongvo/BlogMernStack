@@ -1,24 +1,29 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import type { HTMLAttributes, ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
-import { Editor } from "@tinymce/tinymce-react";
-import { Share2, Copy, Facebook, Twitter, MessageCircle, Clock, Eye } from "lucide-react";
-import ReactMarkdown, { type Components } from "react-markdown";
-import remarkGfm from "remark-gfm";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { vs } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { vi } from "date-fns/locale";
+import DOMPurify from "dompurify";
+import {
+  Calendar,
+  Clock,
+  Eye,
+  Facebook,
+  Link2,
+  MessageCircle,
+  Share2,
+  Twitter,
+} from "lucide-react";
 
 import Header from "../../../shared/components/Header";
 import Footer from "../../../shared/components/Footer";
-import { Avatar } from "../../../shared/components/ui/avatar";
 import { Button } from "../../../shared/components/ui/button";
 import { useToast } from "../../../shared/components/ui/use-toast";
 import { useAuth } from "../../../shared/contexts/AuthContext";
 import { commentsAPI, postsAPI } from "../../../shared/services/api";
 import { convertHtmlToMarkdown } from "../../../shared/services/markdownUtils";
-import "./BlogDetail.css";
+import { marked } from "marked";
 
+// ============ INTERFACES ============
 interface Author {
   _id: string;
   name: string;
@@ -39,6 +44,7 @@ interface BlogPost {
   image: string;
   author: Author;
   createdAt: string;
+  views?: number;
   likes: number;
   comments: Comment[];
   categoryName?: string;
@@ -65,11 +71,12 @@ interface ApiPost {
   image?: string;
   author?: string | ApiCommentAuthor;
   createdAt: string;
+  views?: number;
   likes?: number;
   category?: string | { _id?: string; name?: string };
 }
 
-interface Heading {
+interface TOCItem {
   id: string;
   text: string;
   level: number;
@@ -82,46 +89,365 @@ interface LatestPost {
   createdAt: string;
 }
 
-type MarkdownCodeProps = {
-  node?: unknown;
-  inline?: boolean;
-  className?: string;
-  children?: ReactNode;
-} & HTMLAttributes<HTMLElement>;
-
-type ShareChannel = "copy" | "facebook" | "twitter";
-
-const slugifyHeading = (value: string) =>
-  value
+// ============ UTILITIES ============
+const slugify = (text: string): string =>
+  text
     .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '');
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
 
-const extractHeadingsFromMarkdown = (markdown: string): Heading[] => {
-  const headingRegex = /^(#{1,6})\s+(.+)$/gm;
-  const extracted: Heading[] = [];
-  let match;
+const extractTOC = (html: string): TOCItem[] => {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+  const headings = doc.querySelectorAll("h2, h3");
+  const toc: TOCItem[] = [];
 
-  while ((match = headingRegex.exec(markdown)) !== null) {
-    const level = match[1].length;
-    const text = match[2].trim();
-    extracted.push({ level, text, id: slugifyHeading(text) });
-  }
+  headings.forEach((heading) => {
+    const text = heading.textContent || "";
+    const id = slugify(text);
+    const level = heading.tagName === "H2" ? 2 : 3;
+    toc.push({ id, text, level });
+  });
 
-  return extracted;
+  return toc;
 };
 
-const collectText = (node?: ReactNode): string => {
-  if (!node) return '';
-  if (typeof node === 'string' || typeof node === 'number') return String(node);
-  if (Array.isArray(node)) return node.map((child) => collectText(child)).join('');
-  return '';
+const addIdsToHeadings = (html: string): string => {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+  const headings = doc.querySelectorAll("h2, h3, h4, h5, h6");
+
+  headings.forEach((heading) => {
+    const text = heading.textContent || "";
+    heading.id = slugify(text);
+  });
+
+  return doc.body.innerHTML;
 };
 
+const formatDate = (date: string): string =>
+  new Date(date).toLocaleDateString("vi-VN", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+const calculateReadingTime = (content: string): number => {
+  const text = content.replace(/<[^>]*>/g, "");
+  const words = text.trim().split(/\s+/).length;
+  return Math.max(1, Math.ceil(words / 200));
+};
+
+// ============ SKELETON COMPONENT ============
+function BlogDetailSkeleton() {
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <Header />
+      <main className="py-8 lg:py-12">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          {/* Header skeleton */}
+          <div className="mb-8 animate-pulse">
+            <div className="mb-4 h-6 w-24 rounded-full bg-slate-200" />
+            <div className="mb-4 h-12 w-3/4 rounded bg-slate-200" />
+            <div className="mb-6 flex gap-4">
+              <div className="h-4 w-32 rounded bg-slate-200" />
+              <div className="h-4 w-24 rounded bg-slate-200" />
+            </div>
+            <div className="aspect-video w-full rounded-2xl bg-slate-200" />
+          </div>
+
+          {/* Content skeleton */}
+          <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
+            <div className="space-y-4 animate-pulse">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="h-4 rounded bg-slate-200" style={{ width: `${85 + Math.random() * 15}%` }} />
+              ))}
+            </div>
+            <div className="hidden lg:block">
+              <div className="h-64 rounded-xl bg-slate-200 animate-pulse" />
+            </div>
+          </div>
+        </div>
+      </main>
+      <Footer />
+    </div>
+  );
+}
+
+// ============ 404 COMPONENT ============
+function NotFoundState() {
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <Header />
+      <main className="flex flex-1 items-center justify-center py-20">
+        <div className="text-center">
+          <h1 className="mb-4 text-4xl font-bold text-slate-900">404</h1>
+          <h2 className="mb-2 text-xl font-semibold text-slate-700">Không tìm thấy bài viết</h2>
+          <p className="mb-6 text-slate-500">Bài viết có thể đã bị xoá hoặc đường dẫn không chính xác.</p>
+          <Link
+            to="/blog"
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-3 font-medium text-white transition hover:bg-blue-700"
+          >
+            ← Quay lại Blog
+          </Link>
+        </div>
+      </main>
+      <Footer />
+    </div>
+  );
+}
+
+// ============ TABLE OF CONTENTS ============
+function TableOfContents({ items }: { items: TOCItem[] }) {
+  const [activeId, setActiveId] = useState<string>("");
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setActiveId(entry.target.id);
+          }
+        });
+      },
+      { rootMargin: "-100px 0px -80% 0px" }
+    );
+
+    items.forEach((item) => {
+      const el = document.getElementById(item.id);
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, [items]);
+
+  if (items.length === 0) return null;
+
+  return (
+    <nav className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h3 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500">
+        Mục lục
+      </h3>
+      <ul className="space-y-2">
+        {items.map((item) => (
+          <li key={item.id} style={{ paddingLeft: item.level === 3 ? "1rem" : 0 }}>
+            <a
+              href={`#${item.id}`}
+              className={`block text-sm transition-colors ${
+                activeId === item.id
+                  ? "font-medium text-blue-600"
+                  : "text-slate-600 hover:text-blue-600"
+              }`}
+            >
+              {item.text}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
+
+// ============ RECENT POSTS SIDEBAR ============
+function RecentPostsSidebar({ posts, currentPostId }: { posts: LatestPost[]; currentPostId: string }) {
+  const filteredPosts = posts.filter((p) => p._id !== currentPostId).slice(0, 3);
+
+  if (filteredPosts.length === 0) return null;
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h3 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500">
+        Bài viết mới
+      </h3>
+      <ul className="space-y-4">
+        {filteredPosts.map((post) => (
+          <li key={post._id}>
+            <Link to={`/blog/${post._id}`} className="group flex gap-3">
+              {post.image && (
+                <img
+                  src={post.image}
+                  alt={post.title}
+                  className="h-16 w-16 flex-shrink-0 rounded-lg object-cover transition group-hover:opacity-80"
+                />
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="line-clamp-2 text-sm font-medium text-slate-800 transition group-hover:text-blue-600">
+                  {post.title}
+                </p>
+                <span className="mt-1 text-xs text-slate-400">{formatDate(post.createdAt)}</span>
+              </div>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+// ============ SHARE BUTTONS ============
+function ShareButtons({ onShare }: { onShare: (type: string) => void }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-sm font-medium text-slate-500">Chia sẻ:</span>
+      <Button variant="outline" size="icon" onClick={() => onShare("copy")} title="Copy link">
+        <Link2 className="h-4 w-4" />
+      </Button>
+      <Button variant="outline" size="icon" onClick={() => onShare("facebook")} title="Facebook">
+        <Facebook className="h-4 w-4" />
+      </Button>
+      <Button variant="outline" size="icon" onClick={() => onShare("twitter")} title="Twitter">
+        <Twitter className="h-4 w-4" />
+      </Button>
+      <Button variant="outline" size="icon" onClick={() => onShare("native")} title="Share">
+        <Share2 className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+}
+
+// ============ COMMENT SECTION ============
+function CommentSection({
+  comments,
+  postId,
+  onCommentAdded,
+}: {
+  comments: Comment[];
+  postId: string;
+  onCommentAdded: (comment: Comment) => void;
+}) {
+  const { toast } = useToast();
+  const [authorName, setAuthorName] = useState("");
+  const [content, setContent] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!authorName.trim() || !content.trim()) {
+      toast({
+        title: "Thiếu thông tin",
+        description: "Vui lòng nhập tên và nội dung bình luận.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = (await commentsAPI.createComment({
+        postId,
+        content,
+        authorName,
+      })) as ApiComment;
+
+      const newComment: Comment = {
+        _id: response._id,
+        content: response.content,
+        author: {
+          _id: response._id,
+          name: response.authorName || authorName,
+          avatar: "https://github.com/shadcn.png",
+        },
+        createdAt: response.createdAt || new Date().toISOString(),
+      };
+
+      onCommentAdded(newComment);
+      setContent("");
+      toast({ title: "Đã gửi bình luận!" });
+    } catch (error) {
+      console.error("Error submitting comment:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể gửi bình luận. Vui lòng thử lại.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <section className="mt-12 border-t border-slate-200 pt-8">
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900">Bình luận</h2>
+          <p className="text-slate-500">Chia sẻ suy nghĩ của bạn về bài viết này</p>
+        </div>
+        <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-700">
+          {comments.length} phản hồi
+        </span>
+      </div>
+
+      {/* Comment Form */}
+      <form onSubmit={handleSubmit} className="mb-8 rounded-xl border border-slate-200 bg-slate-50 p-6">
+        <div className="mb-4">
+          <label htmlFor="authorName" className="mb-2 block text-sm font-medium text-slate-700">
+            Tên của bạn
+          </label>
+          <input
+            id="authorName"
+            type="text"
+            value={authorName}
+            onChange={(e) => setAuthorName(e.target.value)}
+            placeholder="Nhập tên..."
+            className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          />
+        </div>
+        <div className="mb-4">
+          <label htmlFor="content" className="mb-2 block text-sm font-medium text-slate-700">
+            Nội dung
+          </label>
+          <textarea
+            id="content"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="Viết bình luận của bạn..."
+            rows={4}
+            className="w-full resize-none rounded-lg border border-slate-300 px-4 py-2.5 text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          />
+        </div>
+        <Button type="submit" disabled={isSubmitting || !content.trim() || !authorName.trim()}>
+          {isSubmitting ? "Đang gửi..." : "Gửi bình luận"}
+        </Button>
+      </form>
+
+      {/* Comments List */}
+      <div className="space-y-4">
+        {comments.length === 0 ? (
+          <p className="py-8 text-center text-slate-400">Hãy là người đầu tiên bình luận!</p>
+        ) : (
+          comments.map((comment) => (
+            <div key={comment._id} className="flex gap-4 rounded-xl border border-slate-200 bg-white p-5">
+              <img
+                src={comment.author.avatar || "https://github.com/shadcn.png"}
+                alt={comment.author.name}
+                className="h-10 w-10 flex-shrink-0 rounded-full object-cover"
+              />
+              <div className="min-w-0 flex-1">
+                <div className="mb-1 flex items-baseline gap-2">
+                  <span className="font-semibold text-slate-900">{comment.author.name}</span>
+                  <span className="text-xs text-slate-400">
+                    {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true, locale: vi })}
+                  </span>
+                </div>
+                <div
+                  className="prose prose-sm prose-slate max-w-none text-slate-600"
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(comment.content) }}
+                />
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </section>
+  );
+}
+
+// ============ MAIN COMPONENT ============
 export default function BlogDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
@@ -130,74 +456,58 @@ export default function BlogDetailPage() {
   const [post, setPost] = useState<BlogPost | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasLiked, setHasLiked] = useState(false);
-  const [comment, setComment] = useState("");
-  const [authorName, setAuthorName] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [headings, setHeadings] = useState<Heading[]>([]);
   const [latestPosts, setLatestPosts] = useState<LatestPost[]>([]);
-  const contentRef = useRef<HTMLDivElement>(null);
 
-  const markdownBody = useMemo(() => post?.content ?? "", [post?.content]);
-  const readingTime = useMemo(() => {
-    if (!markdownBody) return "1 phút đọc";
-    const words = markdownBody.trim().split(/\s+/).length;
-    const minutes = Math.max(1, Math.ceil(words / 220));
-    return `${minutes} phút đọc`;
-  }, [markdownBody]);
+  // Convert content to HTML and sanitize
+  const { sanitizedHtml, tocItems, readingTime } = useMemo(() => {
+    if (!post?.content) {
+      return { sanitizedHtml: "", tocItems: [], readingTime: 1 };
+    }
 
-  const markdownComponents = useMemo<Components>(() => ({
-    code({ inline, className, children, ...props }: MarkdownCodeProps) {
-      const match = /language-(\w+)/.exec(className || '');
-      const childContent = Array.isArray(children)
-        ? children.map((child) => String(child)).join('')
-        : String(children ?? '');
+    // Convert markdown to HTML if needed
+    let html = post.content;
+    
+    // Check if content is markdown (from our conversion)
+    const isMarkdown = !html.trim().startsWith("<") || /^#{1,6}\s/m.test(html);
+    if (isMarkdown) {
+      html = marked.parse(html, { gfm: true, breaks: true }) as string;
+    }
 
-      if (!inline && match) {
-        return (
-          <SyntaxHighlighter
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            style={vs as any}
-            language={match[1]}
-            PreTag="div"
-            {...props}
-          >
-            {childContent.replace(/\n$/, '')}
-          </SyntaxHighlighter>
-        );
-      }
+    // Add IDs to headings for TOC
+    html = addIdsToHeadings(html);
 
-      return (
-        <code className={className} {...props}>
-          {children}
-        </code>
-      );
-    },
-    h1: ({ children }) => {
-      const value = collectText(children);
-      return <h1 id={slugifyHeading(value)}>{children}</h1>;
-    },
-    h2: ({ children }) => {
-      const value = collectText(children);
-      return <h2 id={slugifyHeading(value)}>{children}</h2>;
-    },
-    h3: ({ children }) => {
-      const value = collectText(children);
-      return <h3 id={slugifyHeading(value)}>{children}</h3>;
-    },
-  }), []);
+    // Sanitize HTML
+    const sanitized = DOMPurify.sanitize(html, {
+      ADD_TAGS: ["iframe"],
+      ADD_ATTR: ["allow", "allowfullscreen", "frameborder", "scrolling", "target"],
+    });
 
+    return {
+      sanitizedHtml: sanitized,
+      tocItems: extractTOC(sanitized),
+      readingTime: calculateReadingTime(html),
+    };
+  }, [post?.content]);
 
-
+  // Fetch post data
   useEffect(() => {
     if (!id) return;
 
-    const fetchPost = async () => {
+    const fetchData = async () => {
       setIsLoading(true);
       try {
+        // Fetch post
         const postData = (await postsAPI.getPostById(id)) as ApiPost;
         const normalizedContent = convertHtmlToMarkdown(postData.content || "");
 
+        // Track view
         await postsAPI.trackPostView(id);
+
+        // Parse author
+        const authorObj =
+          typeof postData.author === "object" && postData.author !== null
+            ? postData.author
+            : null;
 
         setPost({
           _id: postData._id,
@@ -205,24 +515,12 @@ export default function BlogDetailPage() {
           content: normalizedContent,
           image: postData.image || "",
           author: {
-            _id:
-              typeof postData.author === "object" && postData.author !== null
-                ? postData.author._id || "unknown"
-                : "unknown",
-            name:
-              typeof postData.author === "object" && postData.author !== null
-                ? postData.author.name || "unknown"
-                : typeof postData.author === "string"
-                  ? postData.author
-                  : "unknown",
-            avatar:
-              typeof postData.author === "object" &&
-              postData.author !== null &&
-              postData.author.avatar
-                ? postData.author.avatar
-                : "https://github.com/shadcn.png",
+            _id: authorObj?._id || "unknown",
+            name: authorObj?.name || (typeof postData.author === "string" ? postData.author : "Admin"),
+            avatar: authorObj?.avatar || "https://github.com/shadcn.png",
           },
           createdAt: postData.createdAt,
+          views: postData.views || 0,
           likes: postData.likes || 0,
           comments: [],
           categoryName:
@@ -233,17 +531,16 @@ export default function BlogDetailPage() {
                 : undefined,
         });
 
-        setHeadings(extractHeadingsFromMarkdown(normalizedContent));
-
+        // Fetch comments
         try {
           const commentsData = (await commentsAPI.getCommentsByPostId(id)) as ApiComment[];
-          if (commentsData && commentsData.length > 0) {
+          if (commentsData?.length > 0) {
             setPost((prev) => {
               if (!prev) return null;
               return {
                 ...prev,
                 comments: commentsData.map((item) => {
-                  const authorObj =
+                  const commentAuthor =
                     typeof item.author === "object" && item.author !== null
                       ? (item.author as ApiCommentAuthor)
                       : null;
@@ -251,9 +548,9 @@ export default function BlogDetailPage() {
                     _id: item._id,
                     content: item.content,
                     author: {
-                      _id: authorObj?._id || item._id,
-                      name: item.authorName || authorObj?.name || "Khách",
-                      avatar: authorObj?.avatar || "https://github.com/shadcn.png",
+                      _id: commentAuthor?._id || item._id,
+                      name: item.authorName || commentAuthor?.name || "Khách",
+                      avatar: commentAuthor?.avatar || "https://github.com/shadcn.png",
                     },
                     createdAt: item.createdAt,
                   };
@@ -261,386 +558,221 @@ export default function BlogDetailPage() {
               };
             });
           }
-        } catch (error) {
-          console.error("Error fetching comments:", error);
+        } catch (err) {
+          console.error("Error fetching comments:", err);
+        }
+
+        // Fetch latest posts
+        try {
+          const postsData = (await postsAPI.getAllPosts()) as ApiPost[];
+          setLatestPosts(
+            postsData.slice(0, 5).map((p) => ({
+              _id: p._id,
+              title: p.title,
+              image: p.image,
+              createdAt: p.createdAt,
+            }))
+          );
+        } catch (err) {
+          console.error("Error fetching latest posts:", err);
         }
       } catch (error) {
         console.error("Error fetching post:", error);
-        toast({
-          title: "Lỗi",
-          description: "Không thể tải bài viết. Vui lòng thử lại.",
-          variant: "destructive",
-        });
+        setPost(null);
       } finally {
         setIsLoading(false);
       }
     };
 
-    const fetchLatestPosts = async () => {
-      try {
-        const postsData = (await postsAPI.getAllPosts()) as ApiPost[];
-        const latest = postsData.slice(0, 5).map((item) => ({
-          _id: item._id,
-          title: item.title,
-          image: item.image,
-          createdAt: item.createdAt,
-        }));
-        setLatestPosts(latest);
-      } catch (error) {
-        console.error("Error fetching latest posts:", error);
-      }
-    };
+    fetchData();
+  }, [id]);
 
-    fetchPost();
-    fetchLatestPosts();
-  }, [id, toast]);
-
+  // Update document title
   useEffect(() => {
-    if (!post) return;
-    setHeadings(extractHeadingsFromMarkdown(post.content));
+    if (post) {
+      document.title = `${post.title} | Blog`;
+    }
+    return () => {
+      document.title = "Blog";
+    };
   }, [post]);
 
-  const handleLike = async () => {
+  // Handlers
+  const handleShare = async (type: string) => {
+    if (!post) return;
+    const url = window.location.href;
+
+    switch (type) {
+      case "copy":
+        await navigator.clipboard.writeText(url);
+        toast({ title: "Đã sao chép liên kết!" });
+        break;
+      case "facebook":
+        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, "_blank");
+        break;
+      case "twitter":
+        window.open(
+          `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(post.title)}`,
+          "_blank"
+        );
+        break;
+      case "native":
+        if (navigator.share) {
+          try {
+            await navigator.share({ title: post.title, url });
+          } catch {
+            await navigator.clipboard.writeText(url);
+            toast({ title: "Đã sao chép liên kết!" });
+          }
+        } else {
+          await navigator.clipboard.writeText(url);
+          toast({ title: "Đã sao chép liên kết!" });
+        }
+        break;
+    }
+  };
+
+  const handleLike = () => {
     if (!isAuthenticated) {
       toast({
-        title: "Bạn cần đăng nhập",
-        description: "Đăng nhập để bày tỏ cảm xúc với bài viết.",
+        title: "Cần đăng nhập",
+        description: "Đăng nhập để thích bài viết này.",
       });
       return;
     }
 
     setPost((prev) =>
       prev
-        ? {
-            ...prev,
-            likes: hasLiked ? prev.likes - 1 : prev.likes + 1,
-          }
-        : null,
+        ? { ...prev, likes: hasLiked ? prev.likes - 1 : prev.likes + 1 }
+        : null
     );
-
     setHasLiked(!hasLiked);
   };
 
-  const handleCommentSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!comment.trim() || !authorName.trim()) {
-      toast({
-        title: "Thiếu thông tin",
-        description: "Vui lòng nhập tên và nội dung bình luận.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      const payload = {
-        postId: id,
-        content: comment,
-        authorName,
-      };
-      const newCommentData = (await commentsAPI.createComment(payload)) as ApiComment;
-      const newComment = {
-        _id: newCommentData._id,
-        content: newCommentData.content,
-        author: {
-          _id: newCommentData._id,
-          name: newCommentData.authorName || authorName,
-          avatar: "https://github.com/shadcn.png",
-        },
-        createdAt: newCommentData.createdAt || new Date().toISOString(),
-      };
-
-      setPost((prev) =>
-        prev
-          ? {
-              ...prev,
-              comments: [newComment, ...prev.comments],
-            }
-          : null,
-      );
-
-      setComment("");
-      toast({ title: "Đã gửi bình luận" });
-    } catch (error) {
-      console.error("Error submitting comment:", error);
-      toast({
-        title: "Lỗi",
-        description: "Không thể gửi bình luận. Thử lại sau nhé.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleShare = async (channel: ShareChannel) => {
-    if (typeof window === "undefined" || !post) return;
-    const url = window.location.href;
-
-    switch (channel) {
-      case "copy":
-        await navigator.clipboard.writeText(url);
-        toast({ title: "Đã sao chép liên kết" });
-        return;
-      case "facebook":
-        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, "_blank");
-        return;
-      case "twitter":
-        window.open(
-          `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(post.title)}`,
-          "_blank",
-        );
-        return;
-      default:
-        return;
-    }
-  };
-
-  const handleNativeShare = async () => {
-    if (typeof window === 'undefined' || !post) {
-      await handleShare('copy');
-      return;
-    }
-
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: post.title, url: window.location.href });
-        return;
-      } catch {
-        /* fall back to copy */
-      }
-    }
-    await handleShare('copy');
-  };
-
-  const formattedDate = (date: string) =>
-    new Date(date).toLocaleDateString("vi-VN", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-
-  const TableOfContents = () => {
-    if (!headings.length) return null;
-    return (
-      <div className="toc-card">
-        <h4>Mục lục</h4>
-        <ul>
-          {headings.map((heading) => (
-            <li key={heading.id} style={{ marginLeft: `${(heading.level - 1) * 12}px` }}>
-              <a href={`#${heading.id}`}>{heading.text}</a>
-            </li>
-          ))}
-        </ul>
-      </div>
+  const handleCommentAdded = (comment: Comment) => {
+    setPost((prev) =>
+      prev ? { ...prev, comments: [comment, ...prev.comments] } : null
     );
   };
 
-  const LatestPostsSidebar = () => (
-    <div className="latest-card">
-      <h4>Bài viết mới</h4>
-      <ul>
-        {latestPosts.map((item) => (
-          <li key={item._id}>
-            <Link to={`/blog/${item._id}`} className="latest-link">
-              {item.image && <img src={item.image} alt={item.title} />}
-              <div>
-                <p>{item.title}</p>
-                <span>{formattedDate(item.createdAt)}</span>
-              </div>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-
-  if (isLoading) {
-    return (
-      <div className="flex flex-col min-h-screen">
-        <Header />
-        <main className="flex-grow">
-          <div className="container-fixed py-10">
-            <div className="skeleton" />
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  if (!post) {
-    return (
-      <div className="flex flex-col min-h-screen">
-        <Header />
-        <main className="flex-grow">
-          <div className="container mx-auto px-4 py-20 text-center">
-            <h2 className="text-2xl font-bold mb-3">Không tìm thấy bài viết</h2>
-            <p>Liên kết có thể đã bị xoá hoặc sai đường dẫn.</p>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
+  // Render states
+  if (isLoading) return <BlogDetailSkeleton />;
+  if (!post) return <NotFoundState />;
 
   return (
-    <div className="flex flex-col min-h-screen blog-detail-page">
+    <div className="min-h-screen bg-slate-50">
       <Header />
-      <main className="flex-grow bg-slate-50">
-        <div className="container-fixed py-10">
-          <section className="blog-hero">
-            <div className="hero-meta">
-              <div className="hero-badges">
-                {post.categoryName && <span className="badge">{post.categoryName}</span>}
-                <span className="badge badge-muted">{readingTime}</span>
+
+      <main className="py-8 lg:py-12">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          {/* ===== HEADER SECTION ===== */}
+          <header className="mb-8 lg:mb-12">
+            {/* Category Badge */}
+            {post.categoryName && (
+              <span className="mb-4 inline-block rounded-full bg-blue-100 px-4 py-1.5 text-sm font-semibold text-blue-700">
+                {post.categoryName}
+              </span>
+            )}
+
+            {/* Title */}
+            <h1 className="mb-4 text-3xl font-bold leading-tight text-slate-900 sm:text-4xl lg:text-5xl">
+              {post.title}
+            </h1>
+
+            {/* Meta info */}
+            <div className="mb-6 flex flex-wrap items-center gap-4 text-sm text-slate-500">
+              <div className="flex items-center gap-2">
+                <img
+                  src={post.author.avatar}
+                  alt={post.author.name}
+                  className="h-8 w-8 rounded-full object-cover"
+                />
+                <span className="font-medium text-slate-700">{post.author.name}</span>
               </div>
-              <h1>{post.title}</h1>
-              <p className="hero-subtext">
-                Tổng hợp chuyên sâu bằng tiếng Việt với giọng văn tự nhiên, tối ưu SEO và dễ đọc.
-              </p>
-              <div className="hero-author">
-                <div className="author-info">
-                  <Avatar className="h-12 w-12">
-                    <img src={post.author.avatar} alt={post.author.name} />
-                  </Avatar>
-                  <div>
-                    <p className="author-name">{post.author.name}</p>
-                    <p className="author-date">{formattedDate(post.createdAt)}</p>
-                  </div>
+              <div className="flex items-center gap-1.5">
+                <Calendar className="h-4 w-4" />
+                <span>{formatDate(post.createdAt)}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Clock className="h-4 w-4" />
+                <span>{readingTime} phút đọc</span>
+              </div>
+              {post.views !== undefined && (
+                <div className="flex items-center gap-1.5">
+                  <Eye className="h-4 w-4" />
+                  <span>{post.views} lượt xem</span>
                 </div>
-                <div className="hero-stats">
-                  <span><Eye size={16} /> {readingTime}</span>
-                  <span><Clock size={16} /> {post.likes} lượt thích</span>
-                  <span><MessageCircle size={16} /> {post.comments.length} bình luận</span>
-                </div>
+              )}
+              <div className="flex items-center gap-1.5">
+                <MessageCircle className="h-4 w-4" />
+                <span>{post.comments.length} bình luận</span>
               </div>
             </div>
+
+            {/* Featured Image */}
             {post.image && (
-              <div className="hero-cover">
-                <img src={post.image} alt={post.title} />
+              <div className="overflow-hidden rounded-2xl">
+                <img
+                  src={post.image}
+                  alt={post.title}
+                  className="aspect-video w-full object-cover"
+                />
               </div>
             )}
-          </section>
+          </header>
 
-          <div className="blog-layout">
-            <article className="blog-article" ref={contentRef}>
-              <div className="share-panel">
-                <p>Chia sẻ bài viết</p>
-                <div className="share-buttons">
-                  <Button variant="outline" size="icon" onClick={() => handleShare('copy')}>
-                    <Copy size={16} />
-                  </Button>
-                  <Button variant="outline" size="icon" onClick={() => handleShare('facebook')}>
-                    <Facebook size={16} />
-                  </Button>
-                  <Button variant="outline" size="icon" onClick={() => handleShare('twitter')}>
-                    <Twitter size={16} />
-                  </Button>
-                  <Button variant="outline" size="icon" onClick={handleNativeShare}>
-                    <Share2 size={16} />
-                  </Button>
-                </div>
-              </div>
-
-              <div className="blog-content">
-                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                  {markdownBody}
-                </ReactMarkdown>
-              </div>
-
-              <div className="like-panel">
-                <Button onClick={handleLike} variant={hasLiked ? "default" : "outline"} className="like-button">
-                  👍 {hasLiked ? "Đã thích" : "Thích bài viết"} · {post.likes}
+          {/* ===== MAIN CONTENT GRID ===== */}
+          <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
+            {/* Content Column */}
+            <div className="min-w-0">
+              {/* Share Bar */}
+              <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4">
+                <ShareButtons onShare={handleShare} />
+                <Button
+                  variant={hasLiked ? "default" : "outline"}
+                  onClick={handleLike}
+                  className="gap-2"
+                >
+                  👍 {hasLiked ? "Đã thích" : "Thích"} · {post.likes}
                 </Button>
               </div>
 
-              <section className="comment-section">
-                <div className="comment-header">
-                  <div>
-                    <h3>Bình luận</h3>
-                    <p>Hãy chia sẻ suy nghĩ của bạn về bài viết này.</p>
-                  </div>
-                  <span className="comment-count">{post.comments.length} phản hồi</span>
-                </div>
+              {/* Article Content */}
+              <article
+                className="prose prose-slate lg:prose-xl max-w-none
+                  prose-headings:scroll-mt-24 prose-headings:font-bold prose-headings:text-slate-900
+                  prose-h2:text-2xl prose-h2:text-blue-700 prose-h2:mt-10 prose-h2:mb-4
+                  prose-h3:text-xl prose-h3:text-blue-600 prose-h3:mt-8 prose-h3:mb-3
+                  prose-p:text-slate-700 prose-p:leading-relaxed
+                  prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline
+                  prose-strong:text-slate-900
+                  prose-blockquote:border-l-blue-500 prose-blockquote:bg-blue-50 prose-blockquote:py-1 prose-blockquote:px-4 prose-blockquote:rounded-r-lg prose-blockquote:not-italic
+                  prose-code:bg-slate-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-pink-600 prose-code:before:content-none prose-code:after:content-none
+                  prose-pre:bg-slate-900 prose-pre:rounded-xl
+                  prose-img:rounded-xl prose-img:shadow-lg
+                  prose-li:marker:text-blue-500"
+                dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
+              />
 
-                <form onSubmit={handleCommentSubmit} className="comment-form">
-                  <div className="comment-inputs">
-                    <input
-                      type="text"
-                      placeholder="Tên của bạn"
-                      value={authorName}
-                      onChange={(e) => setAuthorName(e.target.value)}
-                    />
-                    <div className="comment-editor">
-                      <Editor
-                        apiKey={import.meta.env.VITE_TINY_API_KEY}
-                        init={{
-                          height: 200,
-                          menubar: false,
-                          plugins: [
-                            "advlist",
-                            "autolink",
-                            "lists",
-                            "link",
-                            "charmap",
-                            "preview",
-                            "anchor",
-                            "searchreplace",
-                            "visualblocks",
-                            "code",
-                            "fullscreen",
-                            "insertdatetime",
-                            "media",
-                            "table",
-                            "help",
-                            "wordcount",
-                          ],
-                          toolbar: "bold italic underline | bullist numlist | link",
-                          branding: false,
-                        }}
-                        value={comment}
-                        onEditorChange={(value) => setComment(value)}
-                      />
-                    </div>
-                  </div>
-                  <Button type="submit" disabled={isSubmitting || !comment.trim() || !authorName.trim()}>
-                    {isSubmitting ? "Đang gửi..." : "Gửi bình luận"}
-                  </Button>
-                </form>
+              {/* Comment Section */}
+              <CommentSection
+                comments={post.comments}
+                postId={post._id}
+                onCommentAdded={handleCommentAdded}
+              />
+            </div>
 
-                <div className="comment-list">
-                  {post.comments.length === 0 && <p className="no-comment">Hãy là người đầu tiên bình luận!</p>}
-                  {post.comments.map((item) => (
-                    <div key={item._id} className="comment-card">
-                      <Avatar className="h-10 w-10">
-                        <img src={item.author.avatar} alt={item.author.name} />
-                      </Avatar>
-                      <div>
-                        <div className="comment-meta">
-                          <p className="comment-author">{item.author.name}</p>
-                          <span>{formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}</span>
-                        </div>
-                        <div
-                          className="comment-content"
-                          dangerouslySetInnerHTML={{ __html: item.content }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            </article>
-
-            <aside className="blog-sidebar">
-              <TableOfContents />
-              <LatestPostsSidebar />
+            {/* Sidebar Column */}
+            <aside className="hidden lg:block">
+              <div className="sticky top-24 space-y-6">
+                <TableOfContents items={tocItems} />
+                <RecentPostsSidebar posts={latestPosts} currentPostId={post._id} />
+              </div>
             </aside>
           </div>
         </div>
       </main>
+
       <Footer />
     </div>
   );
