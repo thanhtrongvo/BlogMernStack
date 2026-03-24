@@ -5,7 +5,7 @@ const Category = require('./models/Category');
 const Post = require('./models/Post');
 const Comment = require('./models/Comment');
 
-const MONGO_URI = 'mongodb://localhost:27017/blog';
+const MONGO_URI = 'mongodb://127.0.0.1:27017/blogmernstack';
 
 const seedDatabase = async () => {
     try {

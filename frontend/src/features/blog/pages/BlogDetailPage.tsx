@@ -131,9 +131,9 @@ export default function BlogDetailPage() {
           _id: postData._id,
           title: postData.title,
           content: postData.content || "", // Ensure content is a string
-          image: postData.image,
+          image: postData.image || "",
           author: {
-            _id: postData.author?._id || "unknown",
+            _id: typeof postData.author === "object" && postData.author !== null ? postData.author._id || "unknown" : "unknown",
             name:
               typeof postData.author === "object" && postData.author !== null
                 ? postData.author.name || "unknown"

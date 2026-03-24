@@ -1,41 +1,86 @@
 const config = require('./config');
+const { execSync } = require('child_process');
 
 /**
- * Rewrite article content using Ollama AI.
+ * Rewrite article content using GitHub Copilot / GitHub Models API.
  * Translates to Vietnamese, optimizes for SEO, outputs Markdown.
  */
 
 /**
- * Call Ollama API to generate text
+ * Get GitHub token from gh CLI
+ * @returns {string} GitHub OAuth token
+ */
+function getGitHubToken() {
+    try {
+        const token = execSync('gh auth token', { encoding: 'utf8' }).trim();
+        return token;
+    } catch (error) {
+        console.error('[Rewrite] Failed to get GitHub token:', error.message);
+        throw new Error('GitHub authentication required. Run: gh auth login');
+    }
+}
+
+/**
+ * Sleep for a given number of milliseconds
+ * @param {number} ms - Milliseconds to sleep
+ */
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Call GitHub Models API (Copilot) to generate text
  * @param {string} prompt - The prompt to send
+ * @param {string} systemPrompt - System instructions
+ * @param {number} retries - Number of retries on rate limit
  * @returns {Promise<string>} Generated text response
  */
-async function callOllama(prompt) {
-    try {
-        const response = await fetch(`${config.ollama.host}/api/generate`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: config.ollama.model,
-                prompt: prompt,
-                stream: false,
-                options: {
-                    temperature: 0.7,
-                    top_p: 0.9,
-                    num_predict: 4096,
+async function callGitHubModels(prompt, systemPrompt = '', retries = 3) {
+    const token = getGitHubToken();
+    const model = process.env.GITHUB_MODEL || 'gpt-4o';
+    
+    const messages = [];
+    if (systemPrompt) {
+        messages.push({ role: 'system', content: systemPrompt });
+    }
+    messages.push({ role: 'user', content: prompt });
+
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            const response = await fetch('https://models.github.ai/inference/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
                 },
-            }),
-        });
+                body: JSON.stringify({
+                    model: model,
+                    messages: messages,
+                    temperature: 0.7,
+                    max_tokens: 4096,
+                }),
+            });
 
-        if (!response.ok) {
-            throw new Error(`Ollama API error: ${response.status} ${response.statusText}`);
+            if (response.status === 429) {
+                const waitTime = Math.pow(2, attempt) * 10000; // Exponential backoff: 20s, 40s, 80s
+                console.log(`[Rewrite] Rate limited. Waiting ${waitTime/1000}s before retry ${attempt}/${retries}...`);
+                await sleep(waitTime);
+                continue;
+            }
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`GitHub Models API error: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+            return data.choices?.[0]?.message?.content || '';
+        } catch (error) {
+            if (attempt === retries) {
+                console.error('[Rewrite] GitHub Models API error:', error.message);
+                throw error;
+            }
         }
-
-        const data = await response.json();
-        return data.response || '';
-    } catch (error) {
-        console.error('[Rewrite] Ollama API error:', error.message);
-        throw error;
     }
 }
 
@@ -59,15 +104,17 @@ function generateSlug(title) {
 }
 
 /**
- * Rewrite an article using Ollama AI
+ * Rewrite an article using GitHub Copilot
  * @param {object} article - Raw article { headline, articleBody, images, metadata, sourceUrl }
  * @returns {Promise<object>} Rewritten article { title, content, description, slug, thumbnailUrl }
  */
 async function rewriteArticle(article) {
     console.log(`[Rewrite] Processing: "${article.headline}"`);
 
+    const systemPrompt = `Bạn là một chuyên gia viết blog công nghệ Việt Nam. Nhiệm vụ của bạn là viết lại các bài báo công nghệ tiếng Anh thành tiếng Việt với văn phong lôi cuốn, chuyên nghiệp và tối ưu SEO.`;
+
     // Step 1: Rewrite the full article content
-    const rewritePrompt = `Bạn là một chuyên gia viết blog công nghệ. Hãy viết lại bài báo sau bằng tiếng Việt với văn phong lôi cuốn, dễ hiểu. Tối ưu SEO cho các từ khóa chính. Định dạng đầu ra là Markdown.
+    const rewritePrompt = `Hãy viết lại bài báo sau bằng tiếng Việt với văn phong lôi cuốn, dễ hiểu. Tối ưu SEO cho các từ khóa chính. Định dạng đầu ra là Markdown.
 
 Tiêu đề gốc: ${article.headline}
 
@@ -83,14 +130,14 @@ Yêu cầu:
 - Không thêm thông tin sai lệch
 - Chỉ trả về nội dung Markdown, không thêm bất kỳ giải thích nào khác`;
 
-    const rewrittenContent = await callOllama(rewritePrompt);
+    const rewrittenContent = await callGitHubModels(rewritePrompt, systemPrompt);
 
     // Step 2: Generate Vietnamese title
     const titlePrompt = `Hãy viết lại tiêu đề sau bằng tiếng Việt, ngắn gọn, hấp dẫn, tối ưu SEO. Chỉ trả về tiêu đề, không thêm gì khác.
 
 Tiêu đề gốc: ${article.headline}`;
 
-    const rewrittenTitle = (await callOllama(titlePrompt)).trim().replace(/^["']|["']$/g, '');
+    const rewrittenTitle = (await callGitHubModels(titlePrompt, systemPrompt)).trim().replace(/^["']|["']$/g, '');
 
     // Step 3: Generate SEO description (~160 characters)
     const descPrompt = `Tóm tắt bài viết sau thành MỘT đoạn mô tả SEO meta description bằng tiếng Việt, tối đa 160 ký tự. Chỉ trả về đoạn mô tả, không thêm gì khác.
@@ -100,7 +147,7 @@ Tiêu đề: ${rewrittenTitle}
 Nội dung:
 ${rewrittenContent.substring(0, 1000)}`;
 
-    let description = (await callOllama(descPrompt)).trim().replace(/^["']|["']$/g, '');
+    let description = (await callGitHubModels(descPrompt, systemPrompt)).trim().replace(/^["']|["']$/g, '');
     // Ensure description is within ~160 chars
     if (description.length > 165) {
         description = description.substring(0, 157) + '...';
@@ -134,13 +181,21 @@ ${rewrittenContent.substring(0, 1000)}`;
  * @returns {Promise<Array>} Array of rewritten articles
  */
 async function rewriteAllArticles(articles) {
-    console.log(`[Rewrite] Rewriting ${articles.length} articles...`);
+    console.log(`[Rewrite] Rewriting ${articles.length} articles using GitHub Copilot...`);
     const rewritten = [];
+    const delayBetweenArticles = 5000; // 5 seconds between articles to avoid rate limits
 
-    for (const article of articles) {
+    for (let i = 0; i < articles.length; i++) {
+        const article = articles[i];
         try {
             const result = await rewriteArticle(article);
             rewritten.push(result);
+            
+            // Add delay between articles (except for the last one)
+            if (i < articles.length - 1) {
+                console.log(`[Rewrite] Waiting ${delayBetweenArticles/1000}s before next article...`);
+                await sleep(delayBetweenArticles);
+            }
         } catch (error) {
             console.error(`[Rewrite] Failed to rewrite "${article.headline}":`, error.message);
             // Continue with other articles
