@@ -8,8 +8,7 @@ import {
   StatsSection,
   FeaturesSection,
   FeaturedPosts,
-  BlogSlider,
-  BreakPage,
+  AllPostsSection,
   NewsletterSection,
   Footer,
 } from "../shared/components";
@@ -26,8 +25,7 @@ function FrontendLayout() {
         <StatsSection />
         <FeaturesSection />
         <FeaturedPosts />
-        <BreakPage />
-        <BlogSlider />
+        <AllPostsSection />
         <NewsletterSection />
       </main>
       <Footer />
