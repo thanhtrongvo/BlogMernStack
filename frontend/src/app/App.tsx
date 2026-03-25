@@ -5,7 +5,6 @@ import {
   Toaster,
   Header,
   HeroBanner,
-  StatsSection,
   FeaturesSection,
   FeaturedPosts,
   AllPostsSection,
@@ -22,7 +21,6 @@ function FrontendLayout() {
       <Header />
       <main className="flex-grow">
         <HeroBanner onSearch={(term: string) => console.log(term)} />
-        <StatsSection />
         <FeaturesSection />
         <FeaturedPosts />
         <AllPostsSection />
