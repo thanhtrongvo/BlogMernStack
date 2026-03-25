@@ -1,16 +1,19 @@
 import { Routes, Route } from "react-router-dom";
 import BlogDetailPage from "./pages/BlogDetailPage";
+import CategoryPage from "./pages/CategoryPage";
 
 export const BlogRoutes = () => {
   return (
     <Routes>
-      <Route path=":id" element={<BlogDetailPage />} />
-      {/* Trong tương lai có thể thêm các route khác ở đây, ví dụ:
-        <Route path="category/:categoryId" element={<BlogCategoryPage />} />
-        <Route path="tag/:tagName" element={<BlogTagPage />} />
-        <Route path="author/:authorId" element={<BlogAuthorPage />} />
-        <Route path="search" element={<BlogSearchPage />} />
-      */}
+      <Route path=":slug" element={<BlogDetailPage />} />
+    </Routes>
+  );
+};
+
+export const CategoryRoutes = () => {
+  return (
+    <Routes>
+      <Route path=":slug" element={<CategoryPage />} />
     </Routes>
   );
 };

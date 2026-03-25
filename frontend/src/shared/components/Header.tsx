@@ -11,6 +11,17 @@ interface Category {
   status: string;
 }
 
+// Utility: Generate slug from text
+const slugify = (text: string): string =>
+  text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
 const Header = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,9 +53,11 @@ const Header = () => {
     <header className="sticky top-0 z-30 bg-white shadow-md">
       <div className="container mx-auto flex justify-between items-center py-4 px-4 md:px-6 border-b border-gray-200 bg-gradient-to-r from-white to-gray-50 relative">
         {/* Logo */}
-        <h1 className="font-bold text-xl md:text-2xl bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-600 z-10">
-          My Application
-        </h1>
+        <Link to="/" className="z-10">
+          <h1 className="font-bold text-xl md:text-2xl bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-600">
+            Go Blog
+          </h1>
+        </Link>
 
         {/* Mobile Menu Button */}
         <button
@@ -75,7 +88,7 @@ const Header = () => {
               categories.map((category) => (
                 <li key={category._id}>
                   <Link
-                    to={`/category/${category._id}`}
+                    to={`/category/${slugify(category.name)}-${category._id}`}
                     className="text-gray-700 hover:text-primary font-medium transition-colors relative py-2 group"
                   >
                     {category.name}
@@ -150,7 +163,7 @@ const Header = () => {
                   categories.map((category) => (
                     <li key={category._id} className="w-full text-center">
                       <Link
-                        to={`/category/${category._id}`}
+                        to={`/category/${slugify(category.name)}-${category._id}`}
                         className="text-gray-700 hover:text-primary font-medium transition-colors text-lg block py-2"
                         onClick={() => setMobileMenuOpen(false)}
                       >

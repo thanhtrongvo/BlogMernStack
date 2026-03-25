@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AdminDashboard } from "../features/admin";
-import { BlogRoutes } from "../features/blog";
+import { BlogRoutes, CategoryRoutes } from "../features/blog";
 import {
   Toaster,
   Header,
@@ -36,6 +36,7 @@ function App() {
         <Routes>
           <Route path="/admin/*" element={<AdminDashboard />} />
           <Route path="/blog/*" element={<BlogRoutes />} />
+          <Route path="/category/*" element={<CategoryRoutes />} />
           <Route path="/*" element={<FrontendLayout />} />
         </Routes>
         <Toaster />

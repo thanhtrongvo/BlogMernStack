@@ -281,25 +281,29 @@ function RecentPostsSidebar({ posts, currentPostId }: { posts: LatestPost[]; cur
         Bài viết mới
       </h3>
       <ul className="space-y-4">
-        {filteredPosts.map((post) => (
-          <li key={post._id}>
-            <Link to={`/blog/${post._id}`} className="group flex gap-3">
-              {post.image && (
-                <img
-                  src={post.image}
-                  alt={post.title}
-                  className="h-16 w-16 flex-shrink-0 rounded-lg object-cover transition group-hover:opacity-80"
-                />
-              )}
-              <div className="min-w-0 flex-1">
-                <p className="line-clamp-2 text-sm font-medium text-slate-800 transition group-hover:text-blue-600">
-                  {post.title}
-                </p>
-                <span className="mt-1 text-xs text-slate-400">{formatDate(post.createdAt)}</span>
-              </div>
-            </Link>
-          </li>
-        ))}
+        {filteredPosts.map((post) => {
+          const postSlug = slugify(post.title);
+          const postUrl = `/blog/${postSlug}-${post._id}`;
+          return (
+            <li key={post._id}>
+              <Link to={postUrl} className="group flex gap-3">
+                {post.image && (
+                  <img
+                    src={post.image}
+                    alt={post.title}
+                    className="h-16 w-16 flex-shrink-0 rounded-lg object-cover transition group-hover:opacity-80"
+                  />
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="line-clamp-2 text-sm font-medium text-slate-800 transition group-hover:text-blue-600">
+                    {post.title}
+                  </p>
+                  <span className="mt-1 text-xs text-slate-400">{formatDate(post.createdAt)}</span>
+                </div>
+              </Link>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
@@ -466,7 +470,7 @@ function CommentSection({
 
 // ============ MAIN COMPONENT ============
 export default function BlogDetailPage() {
-  const { id } = useParams<{ id: string }>();
+  const { slug } = useParams<{ slug: string }>();
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
 
@@ -474,6 +478,23 @@ export default function BlogDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [hasLiked, setHasLiked] = useState(false);
   const [latestPosts, setLatestPosts] = useState<LatestPost[]>([]);
+
+  // Extract post ID from slug (format: post-title-slug-{id})
+  const extractPostId = (slugParam: string): string => {
+    // Try to extract MongoDB ObjectId from the end
+    const parts = slugParam.split("-");
+    const lastPart = parts[parts.length - 1];
+    
+    // Check if it's a valid MongoDB ObjectId (24 hex characters)
+    if (/^[a-f0-9]{24}$/i.test(lastPart)) {
+      return lastPart;
+    }
+    
+    // Otherwise return the whole slug as ID (fallback for old URLs)
+    return slugParam;
+  };
+
+  const id = slug ? extractPostId(slug) : undefined;
 
   // Process content: decode entities, add heading IDs, sanitize
   const { sanitizedHtml, tocItems, readingTime } = useMemo(() => {

@@ -181,6 +181,18 @@ export const postsAPI = {
     });
   },
   
+  getPostBySlug: async (slug: string) => {
+    return fetchAPI(`/api/posts/slug/${slug}`, {
+      requireAuth: false,
+    });
+  },
+  
+  getPostsByCategory: async (categoryId: string) => {
+    return fetchAPI(`/api/posts/category/${categoryId}`, {
+      requireAuth: false,
+    });
+  },
+  
   createPost: async (postData: any) => {
     return fetchAPI('/api/posts', {
       method: 'POST',

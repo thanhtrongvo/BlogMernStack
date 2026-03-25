@@ -9,6 +9,7 @@ import { postsAPI } from "../services/api";
 interface Post {
   _id: string;
   title: string;
+  slug?: string;
   content: string;
   image: string;
   author: string;
@@ -18,6 +19,17 @@ interface Post {
   };
   createdAt: string;
 }
+
+// Utility: Generate slug from text
+const slugify = (text: string): string =>
+  text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
 
 const BlogSlider = () => {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -106,32 +118,36 @@ const BlogSlider = () => {
         </div>
       ) : (
         <Slider className="blog-slider" {...settings}>
-          {posts.map((post) => (
-            <div className="blog-slide-item" key={post._id}>
-              <Link to={`/blog/${post._id}`} className="block">
-                <div className="blog-card">
-                  <div className="blog-image-container">
-                    <img 
-                      src={post.image} 
-                      className="blog-image" 
-                      alt={post.title}
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'https://placehold.co/600x400?text=Image+Not+Found';
-                      }}
-                    />
-                    <div className="blog-category-badge">
-                      {post.category?.name || 'Chưa phân loại'}
+          {posts.map((post) => {
+            const postSlug = post.slug || slugify(post.title);
+            const postUrl = `/blog/${postSlug}-${post._id}`;
+            return (
+              <div className="blog-slide-item" key={post._id}>
+                <Link to={postUrl} className="block">
+                  <div className="blog-card">
+                    <div className="blog-image-container">
+                      <img 
+                        src={post.image} 
+                        className="blog-image" 
+                        alt={post.title}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = 'https://placehold.co/600x400?text=Image+Not+Found';
+                        }}
+                      />
+                      <div className="blog-category-badge">
+                        {post.category?.name || 'Chưa phân loại'}
+                      </div>
+                    </div>
+                    <div className="blog-content">
+                      <h2 className="blog-title">
+                        {post.title}
+                      </h2>
                     </div>
                   </div>
-                  <div className="blog-content">
-                    <h2 className="blog-title">
-                      {post.title}
-                    </h2>
-                  </div>
-                </div>
-              </Link>
-            </div>
-          ))}
+                </Link>
+              </div>
+            );
+          })}
         </Slider>
       )}
     </div>
