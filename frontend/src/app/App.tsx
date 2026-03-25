@@ -4,10 +4,13 @@ import { BlogRoutes, CategoryRoutes } from "../features/blog";
 import {
   Toaster,
   Header,
-  Banner,
-  Section,
-  BreakPage,
+  HeroBanner,
+  StatsSection,
+  FeaturesSection,
+  FeaturedPosts,
   BlogSlider,
+  BreakPage,
+  NewsletterSection,
   Footer,
 } from "../shared/components";
 import { AuthProvider } from "../shared/contexts";
@@ -19,10 +22,13 @@ function FrontendLayout() {
     <div className="flex flex-col min-h-screen">
       <Header />
       <main className="flex-grow">
-        <Banner onSearch={(term: string) => console.log(term)} />
-        <Section />
+        <HeroBanner onSearch={(term: string) => console.log(term)} />
+        <StatsSection />
+        <FeaturesSection />
+        <FeaturedPosts />
         <BreakPage />
         <BlogSlider />
+        <NewsletterSection />
       </main>
       <Footer />
     </div>
