@@ -75,23 +75,29 @@ function generateSlug(title) {
 async function rewriteArticle(article) {
     console.log(`[Rewrite] Processing: "${article.headline}"`);
 
-    const systemPrompt = `Bạn là một chuyên gia viết blog công nghệ Việt Nam. Nhiệm vụ của bạn là viết lại các bài báo công nghệ tiếng Anh thành tiếng Việt với văn phong lôi cuốn, chuyên nghiệp và tối ưu SEO.`;
+    const systemPrompt = `Bạn là một biên tập viên blog công nghệ cao cấp tại Việt Nam. Nhiệm vụ của bạn là viết lại các bài báo công nghệ tiếng Anh thành bài blog tiếng Việt chi tiết, cuốn hút, giàu thông tin, và tối ưu SEO. Ưu tiên tính chính xác kỹ thuật, tính dễ đọc, và khả năng giữ chân người đọc đến cuối bài.`;
 
     // Step 1: Rewrite the full article content
-    const rewritePrompt = `Hãy viết lại bài báo sau bằng tiếng Việt với văn phong lôi cuốn, dễ hiểu. Tối ưu SEO cho các từ khóa chính. Định dạng đầu ra là HTML.
+    const rewritePrompt = `Hãy viết lại bài báo sau bằng tiếng Việt theo phong cách blog công nghệ chuyên sâu, hấp dẫn. Định dạng đầu ra là HTML.
 
 Tiêu đề gốc: ${article.headline}
 
 Nội dung gốc:
 ${article.articleBody}
 
-Yêu cầu:
-- Viết lại hoàn toàn bằng tiếng Việt, không dịch máy
-- Giữ nguyên thông tin kỹ thuật chính xác
-- Dùng HTML tags: <h2>, <h3> cho heading, <p> cho paragraphs, <strong> cho bold, <em> cho italic, <ul>/<li> cho lists, <blockquote> cho quotes
-- Văn phong tự nhiên, hấp dẫn, dễ đọc
-- Tối ưu SEO: sử dụng từ khóa chính trong heading và đoạn mở đầu
-- Không thêm thông tin sai lệch
+Yêu cầu bắt buộc:
+- Viết lại hoàn toàn bằng tiếng Việt tự nhiên, không dịch word-by-word
+- Giữ nguyên đầy đủ thông tin kỹ thuật quan trọng, KHÔNG rút gọn quá mức
+- Bài viết phải đủ độ sâu, tối thiểu khoảng 1200 từ (nếu dữ liệu nguồn đủ)
+- Mở bài có hook mạnh: nêu vấn đề, bối cảnh, và lý do người đọc nên quan tâm
+- Triển khai nội dung thành nhiều phần rõ ràng bằng <h2>/<h3>, mỗi phần có giải thích chi tiết + ví dụ thực tế
+- Thêm các điểm thu hút người đọc: so sánh, tình huống sử dụng, tác động thực tế, ưu/nhược điểm, góc nhìn chuyên gia
+- Khi phù hợp, dùng <ul>/<li> để tóm tắt nhanh các ý quan trọng
+- Có phần “Điểm mấu chốt” gần cuối bài (dùng <h2>) để recap nhanh các ý chính
+- Có đoạn kết tự nhiên, gợi mở xu hướng tương lai hoặc câu hỏi thảo luận
+- Tối ưu SEO: đưa từ khóa chính vào tiêu đề phụ và đoạn mở đầu một cách tự nhiên
+- Dùng HTML tags: <h2>, <h3>, <p>, <strong>, <em>, <ul>, <li>, <blockquote>
+- Không thêm thông tin sai lệch hoặc bịa nguồn
 - Chỉ trả về nội dung HTML, không wrap trong \`\`\`html\`\`\` code block, không thêm <html>, <head>, <body> tags`;
 
     let rewrittenContent = await callOllama(`${systemPrompt}
@@ -105,8 +111,36 @@ ${rewritePrompt}`);
         .replace(/\s*```$/i, '')
         .trim();
 
+    // If content is still too short, request a deeper expanded rewrite
+    if (rewrittenContent.length < 3500 && (article.articleBody || '').length > 800) {
+        console.log('[Rewrite] Content hơi ngắn, yêu cầu mở rộng thêm chi tiết...');
+        const expandPrompt = `Bản nháp dưới đây còn hơi ngắn. Hãy mở rộng thành bài blog chi tiết, cuốn hút hơn, giữ nguyên tính chính xác kỹ thuật.
+
+Yêu cầu mở rộng:
+- Bổ sung phân tích sâu hơn cho từng ý chính
+- Thêm ví dụ thực tế, so sánh, và ngữ cảnh áp dụng
+- Tăng độ mạch lạc giữa các đoạn (transition tự nhiên)
+- Giữ định dạng HTML sạch
+- Không lặp ý, không lan man, không bịa thông tin
+
+Bản nháp hiện tại:
+${rewrittenContent}
+
+Nguồn tham chiếu:
+Tiêu đề gốc: ${article.headline}
+Nội dung gốc:
+${article.articleBody}`;
+
+        rewrittenContent = await callOllama(`${systemPrompt}\n\n${expandPrompt}`);
+        rewrittenContent = rewrittenContent
+            .replace(/^```html\s*/i, '')
+            .replace(/^```\s*/i, '')
+            .replace(/\s*```$/i, '')
+            .trim();
+    }
+
     // Step 2: Generate Vietnamese title
-    const titlePrompt = `Hãy viết lại tiêu đề sau bằng tiếng Việt, ngắn gọn, hấp dẫn, tối ưu SEO. Chỉ trả về tiêu đề, không thêm gì khác.
+    const titlePrompt = `Hãy viết lại tiêu đề sau bằng tiếng Việt theo style blog công nghệ: hấp dẫn, rõ giá trị, không giật tít quá đà, tối ưu SEO. Chỉ trả về tiêu đề, không thêm gì khác.
 
 Tiêu đề gốc: ${article.headline}`;
 
