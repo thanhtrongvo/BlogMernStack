@@ -46,7 +46,8 @@ async function fetchArticlesFromSource(sourceUrl) {
  * @param {string} sourceName - Name of the source for logging
  * @returns {Array} Filtered articles within the last 24 hours
  */
-function parseArticles(zyteResponse, sourceName) {
+function parseArticles(zyteResponse, source) {
+    const sourceName = source?.name || 'Unknown Source';
     const articles = [];
     const cutoffTime = new Date(Date.now() - config.crawler.maxAgeHours * 60 * 60 * 1000);
 
@@ -89,6 +90,7 @@ function parseArticles(zyteResponse, sourceName) {
                 language: article.inLanguage || 'en',
             },
             sourceUrl: article.url || article.canonicalUrl || '',
+            sourceCategory: source?.category || '',
         });
     }
 
@@ -129,7 +131,7 @@ async function crawlAllSources(sources) {
         console.log(`[Crawl] Fetching from: ${source.name} (${source.url})`);
 
         const zyteResponse = await fetchArticlesFromSource(source.url);
-        const articles = parseArticles(zyteResponse, source.name);
+        const articles = parseArticles(zyteResponse, source);
 
         console.log(`[Crawl] Found ${articles.length} recent articles from ${source.name}`);
         allArticles.push(...articles);

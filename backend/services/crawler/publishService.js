@@ -4,6 +4,7 @@ const path = require('path');
 // Direct MongoDB access (same codebase)
 const mongoose = require('mongoose');
 const Post = require(path.resolve(__dirname, '../../models/Post'));
+const Category = require(path.resolve(__dirname, '../../models/Category'));
 
 /**
  * Publish rewritten articles to the MERN blog backend.
@@ -12,6 +13,8 @@ const Post = require(path.resolve(__dirname, '../../models/Post'));
 
 let cachedToken = null;
 let tokenExpiry = null;
+let categoryMapCache = null;
+let categoryMapExpiry = null;
 
 /**
  * Login as admin to get JWT access token
@@ -71,8 +74,66 @@ async function isDuplicate(sourceUrl, title) {
 }
 
 /**
+ * Build category lookup map from DB (name -> _id)
+ * @returns {Promise<Map<string, string>>}
+ */
+async function getCategoryMap() {
+    if (categoryMapCache && categoryMapExpiry && Date.now() < categoryMapExpiry) {
+        return categoryMapCache;
+    }
+
+    const categories = await Category.find({ status: 'active' }).lean();
+    const map = new Map();
+
+    for (const c of categories) {
+        if (!c?.name || !c?._id) continue;
+        const key = c.name.toLowerCase().trim();
+        map.set(key, c._id.toString());
+    }
+
+    categoryMapCache = map;
+    categoryMapExpiry = Date.now() + 10 * 60 * 1000; // cache 10 minutes
+    return map;
+}
+
+/**
+ * Resolve target category id for article based on source category/name
+ * @param {object} article
+ * @returns {Promise<string>}
+ */
+async function resolveCategoryId(article) {
+    const categoryMap = await getCategoryMap();
+
+    const normalize = (v) => (v || '').toString().toLowerCase().trim();
+    const sourceCategory = normalize(article.sourceCategory);
+
+    const aliases = {
+        ai: ['ai', 'artificial intelligence', 'machine learning', 'ml'],
+        'tin tức': ['tin tuc', 'news', 'technology', 'tech'],
+        'học tập': ['hoc tap', 'guide', 'tutorial', 'how-to'],
+        'thủ thuật': ['thu thuat', 'tips', 'tricks'],
+        'kể chuyện': ['ke chuyen', 'story', 'opinion', 'insight'],
+    };
+
+    // Direct match by category name
+    for (const [name, id] of categoryMap.entries()) {
+        if (sourceCategory && sourceCategory === name) return id;
+    }
+
+    // Alias match -> existing category name in DB
+    for (const [catName, keys] of Object.entries(aliases)) {
+        if (keys.includes(sourceCategory) && categoryMap.has(catName)) {
+            return categoryMap.get(catName);
+        }
+    }
+
+    // Fallback to configured default category
+    return config.blog.defaultCategory;
+}
+
+/**
  * Publish a single article to the blog
- * @param {object} article - Rewritten article { title, content, description, slug, thumbnailUrl, sourceUrl }
+ * @param {object} article - Rewritten article { title, content, description, slug, thumbnailUrl, sourceUrl, sourceCategory }
  * @returns {Promise<object|null>} Created post or null if failed
  */
 async function publishArticle(article) {
@@ -87,11 +148,13 @@ async function publishArticle(article) {
     const token = await getAuthToken();
 
     // Step 3: Prepare payload
+    const categoryId = await resolveCategoryId(article);
+
     const payload = {
         title: article.title,
         content: article.content,
         image: article.thumbnailUrl || 'https://placehold.co/800x400?text=No+Image',
-        category: config.blog.defaultCategory,
+        category: categoryId,
         status: true, // Auto-publish (true = published immediately, no approval needed)
         slug: article.slug,
         sourceUrl: article.sourceUrl,
