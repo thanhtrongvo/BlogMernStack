@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import { AdminDashboard } from "../features/admin";
 import { BlogRoutes, CategoryRoutes } from "../features/blog";
 import {
@@ -14,6 +14,7 @@ import {
 import { AuthProvider } from "../shared/contexts";
 
 import "../styles/App.css";
+import { useEffect } from "react";
 
 function FrontendLayout() {
   return (
@@ -31,10 +32,21 @@ function FrontendLayout() {
   );
 }
 
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [pathname]);
+
+  return null;
+}
+
 function App() {
   return (
     <AuthProvider>
       <Router>
+        <ScrollToTop />
         <Routes>
           <Route path="/admin/*" element={<AdminDashboard />} />
           <Route path="/blog/*" element={<BlogRoutes />} />
