@@ -1,5 +1,7 @@
+const mongoose = require('mongoose');
 const Post = require('../models/Post');
 const User = require('../models/User');
+const Category = require('../models/Category');
 
 exports.getAllPosts = async (req, res) => {
     try {
@@ -38,11 +40,15 @@ exports.createPost = async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
+        const normalizedImage = (typeof image === 'string' && image.trim())
+            ? image.trim()
+            : 'https://via.placeholder.com/800x400.png?text=No+Image+Available';
+
         // Create new post
         const postData = {
             title,
             content,
-            image,
+            image: normalizedImage,
             author: user.username,
             category,
             status: Boolean(status),
@@ -120,9 +126,29 @@ exports.trackPostView = async (req, res) => {
 };
 
 exports.getPostsByCategory = async (req, res) => { 
-    const {categoryId} = req.params ;
+    const { categoryId } = req.params;
+
     try {
-        const posts = await Post.find({ category: categoryId }).populate('category', 'name description');
+        let resolvedCategoryId = categoryId;
+
+        // Support both ObjectId and category name/slug to avoid CastError (e.g. "n8n")
+        if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+            const normalized = categoryId.toString().trim();
+            const category = await Category.findOne({
+                $or: [
+                    { name: new RegExp(`^${normalized}$`, 'i') },
+                    { name: normalized }
+                ]
+            }).select('_id');
+
+            if (!category) {
+                return res.status(404).json({ message: 'Category not found' });
+            }
+
+            resolvedCategoryId = category._id;
+        }
+
+        const posts = await Post.find({ category: resolvedCategoryId }).populate('category', 'name description');
         if (!posts || posts.length === 0) {
             return res.status(404).json({ message: 'No posts found for this category' });
         }
