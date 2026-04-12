@@ -8,10 +8,12 @@ module.exports = {
         baseUrl: 'https://api.zyte.com/v1/extract',
     },
 
-    // Ollama AI
-    ollama: {
-        host: process.env.OLLAMA_HOST || 'http://localhost:11434',
-        model: process.env.OLLAMA_MODEL || 'llama3',
+    // OpenClaw rewrite API (OpenAI-compatible)
+    openclaw: {
+        host: process.env.OPENCLAW_HOST || 'http://127.0.0.1:18789',
+        token: process.env.OPENCLAW_TOKEN || '',
+        model: process.env.OPENCLAW_MODEL || 'openclaw/default',
+        backendModel: process.env.OPENCLAW_BACKEND_MODEL || '',
     },
 
     // Blog Backend API

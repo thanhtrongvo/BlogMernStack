@@ -1,8 +1,7 @@
 const config = require('./config');
 
 /**
- * Rewrite article content using Ollama models (e.g., qwen3-coder-next:cloud).
- * Translates to Vietnamese, optimizes for SEO, outputs Markdown.
+ * Rewrite article content using OpenClaw OpenAI-compatible endpoint.
  */
 
 /**
@@ -14,36 +13,46 @@ function sleep(ms) {
 }
 
 /**
- * Call Ollama API to generate text
+ * Call OpenClaw Chat Completions API
  * @param {string} prompt - Prompt content
  * @returns {Promise<string>} Generated response
  */
-async function callOllama(prompt) {
+async function callOpenClaw(prompt) {
     try {
-        const response = await fetch(`${config.ollama.host}/api/generate`, {
+        const headers = {
+            'Content-Type': 'application/json',
+        };
+
+        if (config.openclaw.token) {
+            headers.Authorization = `Bearer ${config.openclaw.token}`;
+        }
+
+        if (config.openclaw.backendModel) {
+            headers['x-openclaw-model'] = config.openclaw.backendModel;
+        }
+
+        const response = await fetch(`${config.openclaw.host}/v1/chat/completions`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify({
-                model: config.ollama.model,
-                prompt,
+                model: config.openclaw.model,
                 stream: false,
-                options: {
-                    temperature: 0.7,
-                    top_p: 0.9,
-                    num_predict: 4096,
-                },
+                messages: [
+                    { role: 'user', content: prompt }
+                ],
+                temperature: 0.7,
             }),
         });
 
         if (!response.ok) {
             const errorText = await response.text();
-            throw new Error(`Ollama API error: ${response.status} - ${errorText}`);
+            throw new Error(`OpenClaw API error: ${response.status} - ${errorText}`);
         }
 
         const data = await response.json();
-        return data.response || '';
+        return data?.choices?.[0]?.message?.content?.trim() || '';
     } catch (error) {
-        console.error('[Rewrite] Ollama API error:', error.message);
+        console.error('[Rewrite] OpenClaw API error:', error.message);
         throw error;
     }
 }
@@ -100,9 +109,17 @@ Yêu cầu bắt buộc:
 - Không thêm thông tin sai lệch hoặc bịa nguồn
 - Chỉ trả về nội dung HTML, không wrap trong \`\`\`html\`\`\` code block, không thêm <html>, <head>, <body> tags`;
 
-    let rewrittenContent = await callOllama(`${systemPrompt}
+    let rewrittenContent = await callOpenClaw(`${systemPrompt}
 
 ${rewritePrompt}`);
+
+    // Generate category from content
+    const categoryPrompt = `Dựa vào nội dung bài viết dưới đây, hãy phân loại nó vào MỘT trong các danh mục sau: "Học Tập", "Thủ Thuật", "Kể Chuyện", "Tin Tức". Chỉ trả về tên danh mục duy nhất, không giải thích.
+    Tiêu đề: ${article.headline}`;
+    
+    const suggestedCategory = (await callOpenClaw(`${systemPrompt}\n\n${categoryPrompt}`)).trim();
+    article.sourceCategory = suggestedCategory;
+    
 
     // Clean up content: remove code block wrappers if present
     rewrittenContent = rewrittenContent
@@ -131,7 +148,7 @@ Tiêu đề gốc: ${article.headline}
 Nội dung gốc:
 ${article.articleBody}`;
 
-        rewrittenContent = await callOllama(`${systemPrompt}\n\n${expandPrompt}`);
+        rewrittenContent = await callOpenClaw(`${systemPrompt}\n\n${expandPrompt}`);
         rewrittenContent = rewrittenContent
             .replace(/^```html\s*/i, '')
             .replace(/^```\s*/i, '')
@@ -144,7 +161,7 @@ ${article.articleBody}`;
 
 Tiêu đề gốc: ${article.headline}`;
 
-    const rewrittenTitle = (await callOllama(`${systemPrompt}
+    const rewrittenTitle = (await callOpenClaw(`${systemPrompt}
 
 ${titlePrompt}`)).trim().replace(/^["']|["']$/g, '');
 
@@ -156,7 +173,7 @@ Tiêu đề: ${rewrittenTitle}
 Nội dung:
 ${rewrittenContent.substring(0, 1000)}`;
 
-    let description = (await callOllama(`${systemPrompt}
+    let description = (await callOpenClaw(`${systemPrompt}
 
 ${descPrompt}`)).trim().replace(/^["']|["']$/g, '');
     // Ensure description is within ~160 chars
@@ -192,7 +209,7 @@ ${descPrompt}`)).trim().replace(/^["']|["']$/g, '');
  * @returns {Promise<Array>} Array of rewritten articles
  */
 async function rewriteAllArticles(articles) {
-    console.log(`[Rewrite] Rewriting ${articles.length} articles using Ollama model ${config.ollama.model}...`);
+    console.log(`[Rewrite] Rewriting ${articles.length} articles using OpenClaw model ${config.openclaw.model}...`);
     const rewritten = [];
     const delayBetweenArticles = 5000; // 5 seconds between articles to avoid rate limits
 
