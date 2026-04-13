@@ -222,14 +222,24 @@ function markdownToHtml(markdown) {
     return out.join('\n').trim();
 }
 
+function sanitizeHtmlArtifacts(content) {
+    return (content || '')
+        .replace(/```+/g, '')
+        .replace(/[─-]{8,}/g, '')
+        .replace(/<p>\s*<\/p>/gi, '')
+        .replace(/<p>\s*[─-]{8,}\s*<\/p>/g, '')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+}
+
 function normalizeGeneratedContent(content) {
     const cleaned = cleanHtmlOutput(content);
     if (!cleaned) return '';
 
-    if (looksLikeHtml(cleaned)) return cleaned;
-    if (looksLikeMarkdown(cleaned)) return markdownToHtml(cleaned);
+    if (looksLikeHtml(cleaned)) return sanitizeHtmlArtifacts(cleaned);
+    if (looksLikeMarkdown(cleaned)) return sanitizeHtmlArtifacts(markdownToHtml(cleaned));
 
-    return `<p>${renderInlineMarkdown(cleaned)}</p>`;
+    return sanitizeHtmlArtifacts(`<p>${renderInlineMarkdown(cleaned)}</p>`);
 }
 
 function extractCoverageSignals(text) {
