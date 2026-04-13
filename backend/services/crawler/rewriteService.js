@@ -86,6 +86,36 @@ function isSecurityNewsArticle(article) {
     return keywords.some((k) => text.includes(k));
 }
 
+function cleanHtmlOutput(content) {
+    return (content || '')
+        .replace(/^```html\s*/i, '')
+        .replace(/^```\s*/i, '')
+        .replace(/\s*```$/i, '')
+        .replace(/<!doctype[^>]*>/ig, '')
+        .replace(/<html[^>]*>/ig, '')
+        .replace(/<\/html>/ig, '')
+        .replace(/<head[^>]*>[\s\S]*?<\/head>/ig, '')
+        .replace(/<body[^>]*>/ig, '')
+        .replace(/<\/body>/ig, '')
+        .trim();
+}
+
+function extractCoverageSignals(text) {
+    const src = (text || '').toString();
+    const cves = [...new Set((src.match(/CVE-\d{4}-\d{4,7}/gi) || []).map((m) => m.toUpperCase()))];
+
+    const versionMatches = src.match(/\b\d{1,3}\.\d{1,3}(?:\.\d{1,5}){0,2}\b/g) || [];
+    const versions = [...new Set(versionMatches)].slice(0, 12);
+
+    const keyTerms = [
+        'ransomware', 'malware', 'zero-day', 'exploit', 'patch', 'actively exploited',
+        'uac bypass', 'dll sideloading', 'impacket', 'mimikatz', 'ioc', 'iocs'
+    ];
+    const terms = keyTerms.filter((t) => src.toLowerCase().includes(t));
+
+    return { cves, versions, terms };
+}
+
 /**
  * Rewrite an article using GitHub Copilot
  * @param {object} article - Raw article { headline, articleBody, images, metadata, sourceUrl }
@@ -139,12 +169,8 @@ ${rewritePrompt}`);
     article.sourceCategory = suggestedCategory;
     
 
-    // Clean up content: remove code block wrappers if present
-    rewrittenContent = rewrittenContent
-        .replace(/^```html\s*/i, '')
-        .replace(/^```\s*/i, '')
-        .replace(/\s*```$/i, '')
-        .trim();
+    // Clean up content wrappers
+    rewrittenContent = cleanHtmlOutput(rewrittenContent);
 
     // If content is too short relative to source, ask for fuller coverage without hallucination
     const sourceLen = (article.articleBody || '').length;
@@ -172,11 +198,7 @@ Nội dung nguồn:
 ${article.articleBody}`;
 
         rewrittenContent = await callOpenClaw(`${systemPrompt}\n\n${expandPrompt}`);
-        rewrittenContent = rewrittenContent
-            .replace(/^```html\s*/i, '')
-            .replace(/^```\s*/i, '')
-            .replace(/\s*```$/i, '')
-            .trim();
+        rewrittenContent = cleanHtmlOutput(rewrittenContent);
     }
 
     // Safety pass for security/news: enforce ratio floor with a focused compression-avoidance rewrite
@@ -198,11 +220,34 @@ Nguồn:
 ${article.articleBody}`;
 
         rewrittenContent = await callOpenClaw(`${systemPrompt}\n\n${coveragePrompt}`);
-        rewrittenContent = rewrittenContent
-            .replace(/^```html\s*/i, '')
-            .replace(/^```\s*/i, '')
-            .replace(/\s*```$/i, '')
-            .trim();
+        rewrittenContent = cleanHtmlOutput(rewrittenContent);
+    }
+
+    // Coverage backfill pass: ensure critical technical signals are not dropped for security/news
+    if (securityNewsMode && sourceLen > 3000) {
+        const srcSignals = extractCoverageSignals(article.articleBody);
+        const outSignals = extractCoverageSignals(rewrittenContent);
+
+        const missingCves = srcSignals.cves.filter((cve) => !outSignals.cves.includes(cve));
+        const missingTerms = srcSignals.terms.filter((term) => !outSignals.terms.includes(term));
+
+        if (missingCves.length > 0 || missingTerms.length > 2) {
+            console.log(`[Rewrite] Thiếu tín hiệu kỹ thuật (CVE thiếu: ${missingCves.length}, term thiếu: ${missingTerms.length}), chạy backfill pass...`);
+            const backfillPrompt = `Bài viết hiện tại đã ổn về văn phong nhưng còn thiếu một số chi tiết kỹ thuật từ nguồn.
+
+Yêu cầu:
+- Viết lại phiên bản hoàn chỉnh hơn từ nguồn, KHÔNG bịa thông tin.
+- Bắt buộc giữ đầy đủ CVE, phiên bản ảnh hưởng, kỹ thuật tấn công/phòng vệ, timeline nếu nguồn có.
+- Ưu tiên độ phủ kỹ thuật thay vì rút gọn.
+- Trả về HTML fragment sạch (KHÔNG <!DOCTYPE>, <html>, <head>, <body>). 
+
+Tiêu đề nguồn: ${article.headline}
+Nguồn:
+${article.articleBody}`;
+
+            rewrittenContent = await callOpenClaw(`${systemPrompt}\n\n${backfillPrompt}`);
+            rewrittenContent = cleanHtmlOutput(rewrittenContent);
+        }
     }
 
     // Step 2: Generate Vietnamese title
@@ -283,4 +328,4 @@ async function rewriteAllArticles(articles) {
     return rewritten;
 }
 
-module.exports = { rewriteArticle, rewriteAllArticles, generateSlug };
+module.exports = { rewriteArticle, rewriteAllArticles, generateSlug, cleanHtmlOutput, extractCoverageSignals };
