@@ -76,16 +76,6 @@ function generateSlug(title) {
         .substring(0, 100); // Limit length
 }
 
-function isSecurityNewsArticle(article) {
-    const text = `${article?.headline || ''} ${(article?.metadata?.source || '')} ${article?.sourceCategory || ''}`.toLowerCase();
-    const keywords = [
-        'cve', 'zero-day', '0-day', 'ransomware', 'malware', 'exploit', 'breach',
-        'hacker', 'security', 'vulnerability', 'fortinet', 'adobe', 'microsoft',
-        'the hacker news', 'bleepingcomputer'
-    ];
-    return keywords.some((k) => text.includes(k));
-}
-
 /**
  * Rewrite an article using GitHub Copilot
  * @param {object} article - Raw article { headline, articleBody, images, metadata, sourceUrl }
@@ -94,8 +84,6 @@ function isSecurityNewsArticle(article) {
 async function rewriteArticle(article) {
     console.log(`[Rewrite] Processing: "${article.headline}"`);
 
-    const securityNewsMode = isSecurityNewsArticle(article);
-
     const systemPrompt = `Bạn là biên tập viên công nghệ kỳ cựu. Viết bằng tiếng Việt tự nhiên, rõ ràng, có chiều sâu, không phô trương, không “kể lể cho dài”.
 
 Nguyên tắc bắt buộc:
@@ -103,8 +91,7 @@ Nguyên tắc bắt buộc:
 - KHÔNG thêm ví dụ giả định nếu bài gốc không có dữ liệu hỗ trợ.
 - Ưu tiên câu ngắn-vừa, dễ đọc trên mobile.
 - Tránh mở bài kiểu “drama hóa” hoặc giật gân quá mức.
-- Giữ giọng văn chuyên nghiệp, thực dụng, hữu ích.
-${securityNewsMode ? '- Với nhóm Security/News: ưu tiên độ phủ thông tin đầy đủ, không bỏ sót IoC, timeline, affected versions, kỹ thuật tấn công/phòng vệ có trong nguồn.' : ''}`;
+- Giữ giọng văn chuyên nghiệp, thực dụng, hữu ích.`;
 
     // Step 1: Rewrite the full article content
     const rewritePrompt = `Viết lại bài báo sau thành bài tiếng Việt chất lượng cao, định dạng HTML.
@@ -124,7 +111,6 @@ Yêu cầu bắt buộc:
 - Độ dài mục tiêu: tương đương bài gốc; nếu nguồn ngắn thì chấp nhận bài ngắn nhưng phải đầy đủ ý.
 - Tránh lặp ý, tránh kéo dài bằng câu văn chung chung.
 - Dùng HTML tags: <h1>, <h2>, <h3>, <p>, <strong>, <em>, <ul>, <li>, <blockquote>.
-${securityNewsMode ? '- Nếu là Security/News: phải bao phủ đầy đủ các mục có trong nguồn: tác nhân, kỹ thuật/tactic, CVE/version bị ảnh hưởng, timeline/campaign, IoC/chỉ dấu, khuyến nghị giảm thiểu.' : ''}
 - Chỉ trả về HTML thuần, không code fence, không thêm <html>/<head>/<body>.`;
 
     let rewrittenContent = await callOpenClaw(`${systemPrompt}
@@ -148,14 +134,10 @@ ${rewritePrompt}`);
 
     // If content is too short relative to source, ask for fuller coverage without hallucination
     const sourceLen = (article.articleBody || '').length;
-    const ratioFloor = securityNewsMode && sourceLen > 3000 ? 0.95 : 0.8;
-    const minTargetLen = Math.max(
-        sourceLen > 7000 ? 7000 : sourceLen > 3500 ? 5000 : sourceLen > 1500 ? 3200 : 1800,
-        Math.floor(sourceLen * ratioFloor)
-    );
+    const minTargetLen = sourceLen > 7000 ? 7000 : sourceLen > 3500 ? 5000 : sourceLen > 1500 ? 3200 : 1800;
 
     if (rewrittenContent.length < minTargetLen && sourceLen > 1200) {
-        console.log(`[Rewrite] Content ngắn (${rewrittenContent.length}), yêu cầu viết lại đầy đủ hơn (target ~${minTargetLen}, floor ${ratioFloor})...`);
+        console.log(`[Rewrite] Content ngắn (${rewrittenContent.length}), yêu cầu viết lại đầy đủ hơn (target ~${minTargetLen})...`);
         const expandPrompt = `Bản nháp hiện tại chưa bao quát đủ ý từ nguồn. Hãy viết lại BẢN MỚI đầy đủ hơn, vẫn bám sát nguồn.
 
 Ràng buộc:
@@ -164,7 +146,6 @@ Ràng buộc:
 - Mỗi ý quan trọng trong nguồn cần xuất hiện rõ trong bản viết lại.
 - Ưu tiên tăng chiều sâu giải thích thay vì thêm “văn hoa”.
 - Giữ HTML sạch, dễ đọc.
-${securityNewsMode ? '- Đây là bài Security/News: bắt buộc giữ đủ phần kỹ thuật (CVE/phiên bản bị ảnh hưởng, cách tấn công, tác động, IOC/khuyến nghị nếu nguồn có), không bỏ ý quan trọng.' : ''}
 
 Nguồn gốc:
 Tiêu đề: ${article.headline}
@@ -172,32 +153,6 @@ Nội dung nguồn:
 ${article.articleBody}`;
 
         rewrittenContent = await callOpenClaw(`${systemPrompt}\n\n${expandPrompt}`);
-        rewrittenContent = rewrittenContent
-            .replace(/^```html\s*/i, '')
-            .replace(/^```\s*/i, '')
-            .replace(/\s*```$/i, '')
-            .trim();
-    }
-
-    // Safety pass for security/news: enforce ratio floor with a focused compression-avoidance rewrite
-    if (securityNewsMode && sourceLen > 3000 && rewrittenContent.length < Math.floor(sourceLen * 0.95)) {
-        console.log(`[Rewrite] Security/news ratio vẫn thấp (${rewrittenContent.length}/${sourceLen}), chạy pass bù độ phủ...`);
-        const coveragePrompt = `Bản dưới đây vẫn thiếu độ phủ thông tin so với nguồn. Hãy viết lại phiên bản đầy đủ hơn, vẫn trung thành dữ kiện.
-
-Mục tiêu định lượng:
-- Độ dài tối thiểu khoảng 95% so với độ dài nguồn (không độn chữ vô nghĩa).
-
-Ràng buộc:
-- Không thêm dữ kiện ngoài nguồn.
-- Giữ đủ các chi tiết kỹ thuật quan trọng.
-- Câu văn rõ ràng, tránh sáo rỗng.
-- Trả về HTML sạch.
-
-Tiêu đề nguồn: ${article.headline}
-Nguồn:
-${article.articleBody}`;
-
-        rewrittenContent = await callOpenClaw(`${systemPrompt}\n\n${coveragePrompt}`);
         rewrittenContent = rewrittenContent
             .replace(/^```html\s*/i, '')
             .replace(/^```\s*/i, '')
