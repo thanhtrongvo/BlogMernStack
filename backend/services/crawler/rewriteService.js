@@ -100,6 +100,138 @@ function cleanHtmlOutput(content) {
         .trim();
 }
 
+function looksLikeHtml(content) {
+    return /<\/?(h1|h2|h3|h4|h5|h6|p|ul|ol|li|blockquote|strong|em|code|a)\b/i.test(content || '');
+}
+
+function looksLikeMarkdown(content) {
+    return /(^|\n)#{1,6}\s|\*\*[^*]+\*\*|\[[^\]]+\]\(https?:\/\/[^)]+\)|(^|\n)\s*[-*+]\s+|(^|\n)\s*\d+\.\s+/m.test(content || '');
+}
+
+function escapeHtml(text) {
+    return (text || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
+function renderInlineMarkdown(text) {
+    let s = escapeHtml(text || '');
+    s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+    s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    s = s.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+    return s;
+}
+
+function markdownToHtml(markdown) {
+    const lines = (markdown || '').replace(/\r\n/g, '\n').split('\n');
+    const out = [];
+    let paragraph = [];
+    let inUl = false;
+    let inOl = false;
+
+    const closeLists = () => {
+        if (inUl) {
+            out.push('</ul>');
+            inUl = false;
+        }
+        if (inOl) {
+            out.push('</ol>');
+            inOl = false;
+        }
+    };
+
+    const flushParagraph = () => {
+        if (paragraph.length) {
+            out.push(`<p>${renderInlineMarkdown(paragraph.join(' '))}</p>`);
+            paragraph = [];
+        }
+    };
+
+    for (const rawLine of lines) {
+        const line = rawLine.trim();
+
+        if (!line) {
+            flushParagraph();
+            closeLists();
+            continue;
+        }
+
+        const heading = line.match(/^(#{1,6})\s+(.+)$/);
+        if (heading) {
+            flushParagraph();
+            closeLists();
+            const level = heading[1].length;
+            out.push(`<h${level}>${renderInlineMarkdown(heading[2])}</h${level}>`);
+            continue;
+        }
+
+        if (/^---+$/.test(line)) {
+            flushParagraph();
+            closeLists();
+            out.push('<hr/>');
+            continue;
+        }
+
+        const ul = line.match(/^[-*+]\s+(.+)$/);
+        if (ul) {
+            flushParagraph();
+            if (inOl) {
+                out.push('</ol>');
+                inOl = false;
+            }
+            if (!inUl) {
+                out.push('<ul>');
+                inUl = true;
+            }
+            out.push(`<li>${renderInlineMarkdown(ul[1])}</li>`);
+            continue;
+        }
+
+        const ol = line.match(/^\d+\.\s+(.+)$/);
+        if (ol) {
+            flushParagraph();
+            if (inUl) {
+                out.push('</ul>');
+                inUl = false;
+            }
+            if (!inOl) {
+                out.push('<ol>');
+                inOl = true;
+            }
+            out.push(`<li>${renderInlineMarkdown(ol[1])}</li>`);
+            continue;
+        }
+
+        const block = line.match(/^>\s?(.+)$/);
+        if (block) {
+            flushParagraph();
+            closeLists();
+            out.push(`<blockquote><p>${renderInlineMarkdown(block[1])}</p></blockquote>`);
+            continue;
+        }
+
+        closeLists();
+        paragraph.push(line);
+    }
+
+    flushParagraph();
+    closeLists();
+
+    return out.join('\n').trim();
+}
+
+function normalizeGeneratedContent(content) {
+    const cleaned = cleanHtmlOutput(content);
+    if (!cleaned) return '';
+
+    if (looksLikeHtml(cleaned)) return cleaned;
+    if (looksLikeMarkdown(cleaned)) return markdownToHtml(cleaned);
+
+    return `<p>${renderInlineMarkdown(cleaned)}</p>`;
+}
+
 function extractCoverageSignals(text) {
     const src = (text || '').toString();
     const cves = [...new Set((src.match(/CVE-\d{4}-\d{4,7}/gi) || []).map((m) => m.toUpperCase()))];
@@ -198,7 +330,7 @@ ${rewritePrompt}`);
     
 
     // Clean up content wrappers
-    rewrittenContent = cleanHtmlOutput(rewrittenContent);
+    rewrittenContent = normalizeGeneratedContent(rewrittenContent);
 
     // If content is too short relative to source, ask for fuller coverage without hallucination
     const sourceLen = (article.articleBody || '').length;
@@ -226,7 +358,7 @@ Nội dung nguồn:
 ${article.articleBody}`;
 
         rewrittenContent = await callOpenClaw(`${systemPrompt}\n\n${expandPrompt}`);
-        rewrittenContent = cleanHtmlOutput(rewrittenContent);
+        rewrittenContent = normalizeGeneratedContent(rewrittenContent);
     }
 
     // Safety pass for security/news: enforce ratio floor with a focused compression-avoidance rewrite
@@ -248,7 +380,7 @@ Nguồn:
 ${article.articleBody}`;
 
         rewrittenContent = await callOpenClaw(`${systemPrompt}\n\n${coveragePrompt}`);
-        rewrittenContent = cleanHtmlOutput(rewrittenContent);
+        rewrittenContent = normalizeGeneratedContent(rewrittenContent);
     }
 
     // Coverage backfill pass: ensure critical technical signals are not dropped for security/news
@@ -274,7 +406,7 @@ Nguồn:
 ${article.articleBody}`;
 
             rewrittenContent = await callOpenClaw(`${systemPrompt}\n\n${backfillPrompt}`);
-            rewrittenContent = cleanHtmlOutput(rewrittenContent);
+            rewrittenContent = normalizeGeneratedContent(rewrittenContent);
         }
     }
 
@@ -346,7 +478,7 @@ Bài hiện tại cần patch:
 ${rewrittenContent}`;
 
             rewrittenContent = await callOpenClaw(`${systemPrompt}\n\n${patchPrompt}`);
-            rewrittenContent = cleanHtmlOutput(rewrittenContent);
+            rewrittenContent = normalizeGeneratedContent(rewrittenContent);
         }
     }
 
@@ -428,4 +560,12 @@ async function rewriteAllArticles(articles) {
     return rewritten;
 }
 
-module.exports = { rewriteArticle, rewriteAllArticles, generateSlug, cleanHtmlOutput, extractCoverageSignals };
+module.exports = {
+    rewriteArticle,
+    rewriteAllArticles,
+    generateSlug,
+    cleanHtmlOutput,
+    extractCoverageSignals,
+    normalizeGeneratedContent,
+    markdownToHtml,
+};
