@@ -84,10 +84,17 @@ function generateSlug(title) {
 async function rewriteArticle(article) {
     console.log(`[Rewrite] Processing: "${article.headline}"`);
 
-    const systemPrompt = `Bạn là một biên tập viên blog công nghệ cao cấp tại Việt Nam. Nhiệm vụ của bạn là viết lại các bài báo công nghệ tiếng Anh thành bài blog tiếng Việt chi tiết, cuốn hút, giàu thông tin, và tối ưu SEO. Ưu tiên tính chính xác kỹ thuật, tính dễ đọc, và khả năng giữ chân người đọc đến cuối bài.`;
+    const systemPrompt = `Bạn là biên tập viên công nghệ kỳ cựu. Viết bằng tiếng Việt tự nhiên, rõ ràng, có chiều sâu, không phô trương, không “kể lể cho dài”.
+
+Nguyên tắc bắt buộc:
+- BÁM SÁT dữ kiện từ bài gốc; không bịa tình tiết, số liệu, quote, timeline.
+- KHÔNG thêm ví dụ giả định nếu bài gốc không có dữ liệu hỗ trợ.
+- Ưu tiên câu ngắn-vừa, dễ đọc trên mobile.
+- Tránh mở bài kiểu “drama hóa” hoặc giật gân quá mức.
+- Giữ giọng văn chuyên nghiệp, thực dụng, hữu ích.`;
 
     // Step 1: Rewrite the full article content
-    const rewritePrompt = `Hãy viết lại bài báo sau bằng tiếng Việt theo phong cách blog công nghệ chuyên sâu, hấp dẫn. Định dạng đầu ra là HTML.
+    const rewritePrompt = `Viết lại bài báo sau thành bài tiếng Việt chất lượng cao, định dạng HTML.
 
 Tiêu đề gốc: ${article.headline}
 
@@ -95,19 +102,16 @@ Nội dung gốc:
 ${article.articleBody}
 
 Yêu cầu bắt buộc:
-- Viết lại hoàn toàn bằng tiếng Việt tự nhiên, không dịch word-by-word
-- Giữ nguyên đầy đủ thông tin kỹ thuật quan trọng, KHÔNG rút gọn quá mức
-- Bài viết phải đủ độ sâu, tối thiểu khoảng 1200 từ (nếu dữ liệu nguồn đủ)
-- Mở bài có hook mạnh: nêu vấn đề, bối cảnh, và lý do người đọc nên quan tâm
-- Triển khai nội dung thành nhiều phần rõ ràng bằng <h2>/<h3>, mỗi phần có giải thích chi tiết + ví dụ thực tế
-- Thêm các điểm thu hút người đọc: so sánh, tình huống sử dụng, tác động thực tế, ưu/nhược điểm, góc nhìn chuyên gia
-- Khi phù hợp, dùng <ul>/<li> để tóm tắt nhanh các ý quan trọng
-- Có phần “Điểm mấu chốt” gần cuối bài (dùng <h2>) để recap nhanh các ý chính
-- Có đoạn kết tự nhiên, gợi mở xu hướng tương lai hoặc câu hỏi thảo luận
-- Tối ưu SEO: đưa từ khóa chính vào tiêu đề phụ và đoạn mở đầu một cách tự nhiên
-- Dùng HTML tags: <h2>, <h3>, <p>, <strong>, <em>, <ul>, <li>, <blockquote>
-- Không thêm thông tin sai lệch hoặc bịa nguồn
-- Chỉ trả về nội dung HTML, không wrap trong \`\`\`html\`\`\` code block, không thêm <html>, <head>, <body> tags`;
+- Viết lại tự nhiên, mạch lạc, không dịch máy móc.
+- Chỉ dùng dữ kiện có trong nguồn; không tự thêm quote/số liệu/sự kiện mới.
+- Ưu tiên cấu trúc rõ ràng: mở bài ngắn, thân bài theo ý chính, kết bài súc tích.
+- Mỗi <h2> cần có giá trị thông tin cụ thể (không đặt tiêu đề “màu mè”).
+- Có thể dùng <h3>, <ul>/<li> khi cần để tăng khả năng quét nhanh.
+- Giải thích ngắn gọn “ý nghĩa thực tế” cho người đọc Việt (ảnh hưởng gì, cần làm gì).
+- Độ dài mục tiêu: tương đương bài gốc; nếu nguồn ngắn thì chấp nhận bài ngắn nhưng phải đầy đủ ý.
+- Tránh lặp ý, tránh kéo dài bằng câu văn chung chung.
+- Dùng HTML tags: <h1>, <h2>, <h3>, <p>, <strong>, <em>, <ul>, <li>, <blockquote>.
+- Chỉ trả về HTML thuần, không code fence, không thêm <html>/<head>/<body>.`;
 
     let rewrittenContent = await callOpenClaw(`${systemPrompt}
 
@@ -128,24 +132,24 @@ ${rewritePrompt}`);
         .replace(/\s*```$/i, '')
         .trim();
 
-    // If content is still too short, request a deeper expanded rewrite
-    if (rewrittenContent.length < 3500 && (article.articleBody || '').length > 800) {
-        console.log('[Rewrite] Content hơi ngắn, yêu cầu mở rộng thêm chi tiết...');
-        const expandPrompt = `Bản nháp dưới đây còn hơi ngắn. Hãy mở rộng thành bài blog chi tiết, cuốn hút hơn, giữ nguyên tính chính xác kỹ thuật.
+    // If content is too short relative to source, ask for fuller coverage without hallucination
+    const sourceLen = (article.articleBody || '').length;
+    const minTargetLen = sourceLen > 7000 ? 7000 : sourceLen > 3500 ? 5000 : sourceLen > 1500 ? 3200 : 1800;
 
-Yêu cầu mở rộng:
-- Bổ sung phân tích sâu hơn cho từng ý chính
-- Thêm ví dụ thực tế, so sánh, và ngữ cảnh áp dụng
-- Tăng độ mạch lạc giữa các đoạn (transition tự nhiên)
-- Giữ định dạng HTML sạch
-- Không lặp ý, không lan man, không bịa thông tin
+    if (rewrittenContent.length < minTargetLen && sourceLen > 1200) {
+        console.log(`[Rewrite] Content ngắn (${rewrittenContent.length}), yêu cầu viết lại đầy đủ hơn (target ~${minTargetLen})...`);
+        const expandPrompt = `Bản nháp hiện tại chưa bao quát đủ ý từ nguồn. Hãy viết lại BẢN MỚI đầy đủ hơn, vẫn bám sát nguồn.
 
-Bản nháp hiện tại:
-${rewrittenContent}
+Ràng buộc:
+- Không thêm thông tin ngoài nguồn.
+- Không lặp ý để câu chữ dài giả tạo.
+- Mỗi ý quan trọng trong nguồn cần xuất hiện rõ trong bản viết lại.
+- Ưu tiên tăng chiều sâu giải thích thay vì thêm “văn hoa”.
+- Giữ HTML sạch, dễ đọc.
 
-Nguồn tham chiếu:
-Tiêu đề gốc: ${article.headline}
-Nội dung gốc:
+Nguồn gốc:
+Tiêu đề: ${article.headline}
+Nội dung nguồn:
 ${article.articleBody}`;
 
         rewrittenContent = await callOpenClaw(`${systemPrompt}\n\n${expandPrompt}`);

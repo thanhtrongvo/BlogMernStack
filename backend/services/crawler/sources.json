@@ -1,17 +1,32 @@
 [
     {
-        "name": "The Verge - Tech",
-        "url": "https://www.theverge.com/tech",
-        "category": "Technology"
+        "name": "The Hacker News",
+        "url": "https://thehackernews.com/",
+        "category": "Tin Tức"
     },
     {
-        "name": "The Verge - AI",
-        "url": "https://www.theverge.com/ai-artificial-intelligence",
-        "category": "AI"
+        "name": "BleepingComputer",
+        "url": "https://www.bleepingcomputer.com/",
+        "category": "Tin Tức"
     },
     {
-        "name": "TechCrunch",
-        "url": "https://techcrunch.com/category/artificial-intelligence/",
-        "category": "AI"
+        "name": "Ars Technica",
+        "url": "https://arstechnica.com/",
+        "category": "Thủ Thuật"
+    },
+    {
+        "name": "InfoQ",
+        "url": "https://www.infoq.com/",
+        "category": "Học Tập"
+    },
+    {
+        "name": "DEV Community",
+        "url": "https://dev.to/",
+        "category": "Học Tập"
+    },
+    {
+        "name": "Smashing Magazine",
+        "url": "https://www.smashingmagazine.com/articles/",
+        "category": "Thủ Thuật"
     }
 ]
