@@ -2,15 +2,21 @@ const config = require('./config');
 
 /**
  * Crawl articles from news sources using Zyte API (Automatic Extraction).
- * Only returns articles published within the last 24 hours.
+ * By default, only keeps content published within the configured maxAgeHours.
+ *
+ * Quality strategy:
+ * 1) Crawl source listing pages
+ * 2) Parse candidate article URLs
+ * 3) For thin entries (empty/short body), fetch article detail URL directly
+ * 4) Keep only entries with enough usable content
  */
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
- * Fetch articles from a single source URL using Zyte API
- * @param {string} sourceUrl - The URL to crawl
- * @returns {Promise<object>} Zyte API response
+ * Fetch extraction payload from Zyte API for any URL (listing or article)
+ * @param {string} sourceUrl
+ * @returns {Promise<object>}
  */
 async function fetchArticlesFromSource(sourceUrl) {
     try {
@@ -40,26 +46,67 @@ async function fetchArticlesFromSource(sourceUrl) {
     }
 }
 
+function getPublishDate(article) {
+    return article?.datePublished ? new Date(article.datePublished) : null;
+}
+
+function isLikelyNoiseUrl(url = '') {
+    const u = (url || '').toLowerCase();
+    if (!u.startsWith('http')) return true;
+
+    const blockedPatterns = [
+        '/tag/',
+        '/category/',
+        '/search',
+        '/page/',
+        '/newsletter',
+        '/podcasts/',
+        '/presentations/',
+        '/minibooks/',
+        'utm_',
+        'hubs.li/',
+        '/webinar',
+    ];
+
+    return blockedPatterns.some((p) => u.includes(p));
+}
+
+/**
+ * Normalize one Zyte article payload into internal shape
+ */
+function toInternalArticle(article, source) {
+    return {
+        headline: article.headline || article.name || 'Untitled',
+        articleBody: article.articleBody || article.description || article.text || '',
+        images: extractImages(article),
+        metadata: {
+            datePublished: article.datePublished,
+            author: article.author || article.authorsList || [],
+            source: source?.name || 'Unknown Source',
+            language: article.inLanguage || 'en',
+        },
+        sourceUrl: article.url || article.canonicalUrl || '',
+        sourceCategory: source?.category || '',
+    };
+}
+
 /**
  * Parse and filter articles from Zyte API response
- * @param {object} zyteResponse - Raw response from Zyte API
- * @param {string} sourceName - Name of the source for logging
- * @returns {Array} Filtered articles within the last 24 hours
+ * @param {object} zyteResponse
+ * @param {object} source
+ * @returns {Array}
  */
 function parseArticles(zyteResponse, source) {
     const sourceName = source?.name || 'Unknown Source';
     const articles = [];
     const cutoffTime = new Date(Date.now() - config.crawler.maxAgeHours * 60 * 60 * 1000);
 
-    // Safely build an array of all articles from the response
     const rawList = zyteResponse.articleList;
     const allItems = [];
 
-    // articleList can be an array, an object, or undefined
     if (Array.isArray(rawList)) {
         allItems.push(...rawList);
     } else if (rawList && typeof rawList === 'object') {
-        // If it's an object with articles inside (e.g. { articles: [...] })
         if (Array.isArray(rawList.articles)) {
             allItems.push(...rawList.articles);
         } else {
@@ -67,31 +114,30 @@ function parseArticles(zyteResponse, source) {
         }
     }
 
-    // Also handle single article response
     if (zyteResponse.article) {
         allItems.push(zyteResponse.article);
     }
 
-    for (const article of allItems) {
-        const publishDate = article.datePublished ? new Date(article.datePublished) : null;
+    const seen = new Set();
 
+    for (const item of allItems) {
+        const normalized = toInternalArticle(item, source);
+        const url = normalized.sourceUrl;
+
+        if (!url || isLikelyNoiseUrl(url)) {
+            continue;
+        }
+
+        const publishDate = getPublishDate(item);
         if (publishDate && publishDate < cutoffTime) {
             continue;
         }
 
-        articles.push({
-            headline: article.headline || article.name || 'Untitled',
-            articleBody: article.articleBody || article.description || '',
-            images: extractImages(article),
-            metadata: {
-                datePublished: article.datePublished,
-                author: article.author || article.authorsList || [],
-                source: sourceName,
-                language: article.inLanguage || 'en',
-            },
-            sourceUrl: article.url || article.canonicalUrl || '',
-            sourceCategory: source?.category || '',
-        });
+        const key = `${sourceName}|${url}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        articles.push(normalized);
     }
 
     return articles;
@@ -119,9 +165,43 @@ function extractImages(article) {
 }
 
 /**
+ * Fetch article detail for thin entries to improve rewrite quality
+ */
+async function enrichThinArticles(articles, sourceName) {
+    const minBody = config.crawler.minBodyLengthForRewrite || 500;
+    const maxDetailFetch = config.crawler.maxDetailFetchPerSource || 5;
+    let fetched = 0;
+
+    for (const article of articles) {
+        const currentLen = (article.articleBody || '').length;
+        if (currentLen >= minBody) continue;
+        if (!article.sourceUrl || fetched >= maxDetailFetch) continue;
+
+        fetched++;
+        console.log(`[Crawl] [${sourceName}] Enriching thin article (${currentLen} chars): ${article.sourceUrl}`);
+
+        const detail = await fetchArticlesFromSource(article.sourceUrl);
+        const detailArticle = detail?.article;
+
+        if (detailArticle) {
+            const enriched = toInternalArticle(detailArticle, { name: sourceName, category: article.sourceCategory });
+            if ((enriched.articleBody || '').length > currentLen) {
+                article.articleBody = enriched.articleBody;
+                article.images = enriched.images?.length ? enriched.images : article.images;
+                article.metadata = { ...article.metadata, ...enriched.metadata };
+            }
+        }
+
+        await sleep(config.crawler.requestDelay);
+    }
+
+    return articles;
+}
+
+/**
  * Main crawl function: fetch articles from all configured sources
- * @param {Array} sources - Array of source objects { name, url, category }
- * @returns {Promise<Array>} All articles from all sources
+ * @param {Array} sources
+ * @returns {Promise<Array>}
  */
 async function crawlAllSources(sources) {
     console.log(`[Crawl] Starting crawl of ${sources.length} sources via Zyte API...`);
@@ -131,15 +211,20 @@ async function crawlAllSources(sources) {
         console.log(`[Crawl] Fetching from: ${source.name} (${source.url})`);
 
         const zyteResponse = await fetchArticlesFromSource(source.url);
-        const articles = parseArticles(zyteResponse, source);
+        let articles = parseArticles(zyteResponse, source);
 
-        console.log(`[Crawl] Found ${articles.length} recent articles from ${source.name}`);
+        articles = await enrichThinArticles(articles, source.name);
+
+        const minAcceptable = config.crawler.minAcceptableBodyLength || 300;
+        articles = articles.filter((a) => (a.articleBody || '').length >= minAcceptable);
+
+        console.log(`[Crawl] Found ${articles.length} usable recent articles from ${source.name}`);
         allArticles.push(...articles);
 
         await sleep(config.crawler.requestDelay);
     }
 
-    console.log(`[Crawl] Total articles found: ${allArticles.length}`);
+    console.log(`[Crawl] Total usable articles found: ${allArticles.length}`);
     return allArticles;
 }
 

@@ -26,7 +26,10 @@ module.exports = {
 
     // Crawler settings
     crawler: {
-        maxAgeHours: 24,
-        requestDelay: 2000,
+        maxAgeHours: Number(process.env.CRAWLER_MAX_AGE_HOURS || 24),
+        requestDelay: Number(process.env.CRAWLER_REQUEST_DELAY_MS || 2000),
+        minBodyLengthForRewrite: Number(process.env.CRAWLER_MIN_BODY_LEN || 500),
+        minAcceptableBodyLength: Number(process.env.CRAWLER_MIN_ACCEPTABLE_BODY_LEN || 300),
+        maxDetailFetchPerSource: Number(process.env.CRAWLER_MAX_DETAIL_FETCH_PER_SOURCE || 5),
     },
 };
