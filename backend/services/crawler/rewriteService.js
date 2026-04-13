@@ -116,6 +116,34 @@ function extractCoverageSignals(text) {
     return { cves, versions, terms };
 }
 
+function safeJsonParse(maybeJson) {
+    try {
+        return JSON.parse(maybeJson);
+    } catch {
+        const match = (maybeJson || '').match(/\{[\s\S]*\}$/);
+        if (!match) return null;
+        try {
+            return JSON.parse(match[0]);
+        } catch {
+            return null;
+        }
+    }
+}
+
+function normalizeForMatch(text) {
+    return (text || '')
+        .toString()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function toArray(value) {
+    return Array.isArray(value) ? value : [];
+}
+
 /**
  * Rewrite an article using GitHub Copilot
  * @param {object} article - Raw article { headline, articleBody, images, metadata, sourceUrl }
@@ -246,6 +274,78 @@ Nguồn:
 ${article.articleBody}`;
 
             rewrittenContent = await callOpenClaw(`${systemPrompt}\n\n${backfillPrompt}`);
+            rewrittenContent = cleanHtmlOutput(rewrittenContent);
+        }
+    }
+
+    // Round 4: checklist-driven coverage control + targeted patch pass
+    if (securityNewsMode && sourceLen > 3000) {
+        const checklistPrompt = `Phân tích nguồn dưới đây và trả về JSON thuần (không markdown) theo schema:
+{
+  "must_have": {
+    "cves": ["..."],
+    "versions": ["..."],
+    "entities": ["vendor/product/actor quan trọng"],
+    "key_points": ["ý kỹ thuật quan trọng phải có trong bài"]
+  }
+}
+
+Yêu cầu:
+- Chỉ trích xuất thông tin có trong nguồn.
+- Giữ danh sách ngắn gọn, ưu tiên tín hiệu kỹ thuật quan trọng.
+- Không thêm giải thích ngoài JSON.
+
+Nguồn:
+${article.articleBody}`;
+
+        const checklistRaw = await callOpenClaw(`${systemPrompt}\n\n${checklistPrompt}`);
+        const checklist = safeJsonParse(checklistRaw) || { must_have: { cves: [], versions: [], entities: [], key_points: [] } };
+
+        const mustHave = checklist.must_have || {};
+        const cves = toArray(mustHave.cves).map((x) => x.toString().toUpperCase());
+        const versions = toArray(mustHave.versions).map((x) => x.toString());
+        const entities = toArray(mustHave.entities).map((x) => x.toString());
+        const keyPoints = toArray(mustHave.key_points).map((x) => x.toString());
+
+        const outNorm = normalizeForMatch(rewrittenContent);
+        const missingCves = cves.filter((x) => !outNorm.includes(normalizeForMatch(x)));
+        const missingVersions = versions.filter((x) => !outNorm.includes(normalizeForMatch(x)));
+        const missingEntities = entities.filter((x) => !outNorm.includes(normalizeForMatch(x)));
+
+        // Key points are fuzzy, keep limited strictness to avoid over-trigger
+        const missingKeyPoints = keyPoints.filter((kp) => !outNorm.includes(normalizeForMatch(kp).slice(0, 40)));
+
+        const shouldPatch =
+            missingCves.length > 0 ||
+            missingVersions.length > 1 ||
+            missingEntities.length > 2 ||
+            missingKeyPoints.length > 2 ||
+            rewrittenContent.length < Math.floor(sourceLen * 0.95);
+
+        if (shouldPatch) {
+            console.log(`[Rewrite] Round4 patch pass: missing CVE=${missingCves.length}, versions=${missingVersions.length}, entities=${missingEntities.length}, keyPoints=${missingKeyPoints.length}`);
+
+            const patchPrompt = `Bạn sẽ CHỈ chỉnh sửa/bổ sung bài HTML hiện tại để đảm bảo bao phủ đầy đủ thông tin kỹ thuật bắt buộc.
+
+CHECKLIST BẮT BUỘC:
+- CVE: ${JSON.stringify(cves)}
+- Versions: ${JSON.stringify(versions)}
+- Entities: ${JSON.stringify(entities)}
+- Key points: ${JSON.stringify(keyPoints)}
+
+Yêu cầu:
+- Giữ văn phong tự nhiên, không bịa dữ kiện ngoài nguồn.
+- Ưu tiên bổ sung phần thiếu, hạn chế viết lại toàn bộ.
+- Đảm bảo bài sau chỉnh sửa có độ phủ cao và gần bằng độ dài nguồn (>=95% nếu khả thi tự nhiên).
+- Trả về HTML fragment sạch, KHÔNG <!DOCTYPE>, <html>, <head>, <body>.
+
+Nguồn tham chiếu:
+${article.articleBody}
+
+Bài hiện tại cần patch:
+${rewrittenContent}`;
+
+            rewrittenContent = await callOpenClaw(`${systemPrompt}\n\n${patchPrompt}`);
             rewrittenContent = cleanHtmlOutput(rewrittenContent);
         }
     }
