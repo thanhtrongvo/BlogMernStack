@@ -232,14 +232,65 @@ function sanitizeHtmlArtifacts(content) {
         .trim();
 }
 
+function convertPipeParagraphsToTables(html) {
+    const paragraphPipePattern = /<p>\s*\|([\s\S]*?)<\/p>/gi;
+
+    return (html || '').replace(paragraphPipePattern, (full, inner) => {
+        const raw = `|${inner}`;
+        let tokens = raw
+            .split('|')
+            .map((s) => s.trim())
+            .filter(Boolean)
+            .filter((s) => !/^[:\-\s]+$/.test(s));
+
+        if (tokens.length < 8) return full;
+
+        let cols = 4;
+        let strongCount = 0;
+        for (const t of tokens) {
+            if (/<\/?(strong|b)>/i.test(t)) strongCount++;
+            else break;
+        }
+
+        if (strongCount >= 2 && strongCount <= 6) {
+            cols = strongCount;
+        } else {
+            for (const c of [4, 5, 3, 6, 2]) {
+                if (tokens.length >= c * 2 && (tokens.length - c) % c === 0) {
+                    cols = c;
+                    break;
+                }
+            }
+        }
+
+        const header = tokens.slice(0, cols);
+        let body = tokens.slice(cols);
+        while (body.length % cols !== 0) body.pop();
+        if (!header.length || !body.length) return full;
+
+        const thead = `<thead><tr>${header.map((h) => `<th>${h}</th>`).join('')}</tr></thead>`;
+        const rows = [];
+        for (let i = 0; i < body.length; i += cols) {
+            const cells = body.slice(i, i + cols);
+            rows.push(`<tr>${cells.map((c) => `<td>${c}</td>`).join('')}</tr>`);
+        }
+
+        return `<table>${thead}<tbody>${rows.join('')}</tbody></table>`;
+    });
+}
+
 function normalizeGeneratedContent(content) {
     const cleaned = cleanHtmlOutput(content);
     if (!cleaned) return '';
 
-    if (looksLikeHtml(cleaned)) return sanitizeHtmlArtifacts(cleaned);
-    if (looksLikeMarkdown(cleaned)) return sanitizeHtmlArtifacts(markdownToHtml(cleaned));
+    if (looksLikeHtml(cleaned)) {
+        return sanitizeHtmlArtifacts(convertPipeParagraphsToTables(cleaned));
+    }
+    if (looksLikeMarkdown(cleaned)) {
+        return sanitizeHtmlArtifacts(convertPipeParagraphsToTables(markdownToHtml(cleaned)));
+    }
 
-    return sanitizeHtmlArtifacts(`<p>${renderInlineMarkdown(cleaned)}</p>`);
+    return sanitizeHtmlArtifacts(convertPipeParagraphsToTables(`<p>${renderInlineMarkdown(cleaned)}</p>`));
 }
 
 function extractCoverageSignals(text) {
