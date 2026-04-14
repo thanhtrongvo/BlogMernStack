@@ -59,7 +59,7 @@ async function callOllama(prompt, model) {
 /**
  * Call rewrite model with primary+fallback strategy
  * Primary: gemma4:31b-cloud
- * Fallback on limit/capacity: gemma4:e4b (local)
+ * Fallback: gemma4:e4b (local) when primary fails (limit or transient/network errors)
  */
 async function callOpenClaw(prompt) {
     const primary = config.ollama.primaryModel;
@@ -70,8 +70,9 @@ async function callOpenClaw(prompt) {
     } catch (error) {
         console.error(`[Rewrite] Primary model failed (${primary}):`, error.message);
 
-        if (fallback && fallback !== primary && isLimitLikeError(error)) {
-            console.log(`[Rewrite] Fallback to local model: ${fallback}`);
+        if (fallback && fallback !== primary) {
+            const mode = isLimitLikeError(error) ? 'limit/capacity' : 'transient/error';
+            console.log(`[Rewrite] Fallback to local model: ${fallback} (${mode})`);
             try {
                 return await callOllama(prompt, fallback);
             } catch (fallbackError) {
