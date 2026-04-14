@@ -422,15 +422,27 @@ ${rewritePrompt}`);
 
     // If content is too short relative to source, ask for fuller coverage without hallucination
     const sourceLen = (article.articleBody || '').length;
-    const ratioFloor = securityNewsMode && sourceLen > 3000 ? 0.95 : 0.8;
+    const ratioFloor = securityNewsMode && sourceLen > 3000 ? 0.98 : 0.9;
+    const absoluteMinLen = sourceLen > 9000 ? 9000
+        : sourceLen > 6000 ? 7000
+        : sourceLen > 3500 ? 5500
+        : sourceLen > 2000 ? 4200
+        : 3000;
+
     const minTargetLen = Math.max(
-        sourceLen > 7000 ? 7000 : sourceLen > 3500 ? 5000 : sourceLen > 1500 ? 3200 : 1800,
+        absoluteMinLen,
         Math.floor(sourceLen * ratioFloor)
     );
 
     if (rewrittenContent.length < minTargetLen && sourceLen > 1200) {
-        console.log(`[Rewrite] Content ngắn (${rewrittenContent.length}), yêu cầu viết lại đầy đủ hơn (target ~${minTargetLen}, floor ${ratioFloor})...`);
-        const expandPrompt = `Bản nháp hiện tại chưa bao quát đủ ý từ nguồn. Hãy viết lại BẢN MỚI đầy đủ hơn, vẫn bám sát nguồn.
+        const maxExpandAttempts = sourceLen > 2000 ? 2 : 1;
+
+        for (let attempt = 1; attempt <= maxExpandAttempts && rewrittenContent.length < minTargetLen; attempt++) {
+            console.log(`[Rewrite] Content còn ngắn (${rewrittenContent.length}), mở rộng lần ${attempt}/${maxExpandAttempts} (target ~${minTargetLen}, floor ${ratioFloor})...`);
+            const expandPrompt = `Bản nháp hiện tại chưa bao quát đủ ý từ nguồn. Hãy viết lại BẢN MỚI đầy đủ hơn, vẫn bám sát nguồn.
+
+Mục tiêu độ dài:
+- Ít nhất khoảng ${minTargetLen} ký tự nội dung HTML (không độn chữ vô nghĩa).
 
 Ràng buộc:
 - Không thêm thông tin ngoài nguồn.
@@ -438,15 +450,15 @@ Ràng buộc:
 - Mỗi ý quan trọng trong nguồn cần xuất hiện rõ trong bản viết lại.
 - Ưu tiên tăng chiều sâu giải thích thay vì thêm “văn hoa”.
 - Giữ HTML sạch, dễ đọc.
-${securityNewsMode ? '- Đây là bài Security/News: bắt buộc giữ đủ phần kỹ thuật (CVE/phiên bản bị ảnh hưởng, cách tấn công, tác động, IOC/khuyến nghị nếu nguồn có), không bỏ ý quan trọng.' : ''}
+${securityNewsMode ? '- Đây là bài Security/News: bắt buộc giữ đủ phần kỹ thuật (CVE/phiên bản bị ảnh hưởng, cách tấn công, tác động, IOC/khuyến nghị nếu nguồn có), không bỏ ý quan trọng.' : '- Bài không thuộc security/news: bổ sung ngữ cảnh, ví dụ ứng dụng và phân tích lợi-hại để tăng chiều sâu.'}
 
-Nguồn gốc:
 Tiêu đề: ${article.headline}
 Nội dung nguồn:
 ${article.articleBody}`;
 
-        rewrittenContent = await callOpenClaw(`${systemPrompt}\n\n${expandPrompt}`);
-        rewrittenContent = normalizeGeneratedContent(rewrittenContent);
+            rewrittenContent = await callOpenClaw(`${systemPrompt}\n\n${expandPrompt}`);
+            rewrittenContent = normalizeGeneratedContent(rewrittenContent);
+        }
     }
 
     // Safety pass for security/news: enforce ratio floor with a focused compression-avoidance rewrite
