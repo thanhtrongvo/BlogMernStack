@@ -36,9 +36,10 @@ module.exports = {
     crawler: {
         maxAgeHours: Number(process.env.CRAWLER_MAX_AGE_HOURS || 24),
         requestDelay: Number(process.env.CRAWLER_REQUEST_DELAY_MS || 2000),
-        minBodyLengthForRewrite: Number(process.env.CRAWLER_MIN_BODY_LEN || 500),
-        minAcceptableBodyLength: Number(process.env.CRAWLER_MIN_ACCEPTABLE_BODY_LEN || 300),
-        maxDetailFetchPerSource: Number(process.env.CRAWLER_MAX_DETAIL_FETCH_PER_SOURCE || 5),
+        // Tăng chất lượng đầu vào để rewrite không bị hụt ý/hụt độ dài.
+        minBodyLengthForRewrite: Number(process.env.CRAWLER_MIN_BODY_LEN || 900),
+        minAcceptableBodyLength: Number(process.env.CRAWLER_MIN_ACCEPTABLE_BODY_LEN || 700),
+        maxDetailFetchPerSource: Number(process.env.CRAWLER_MAX_DETAIL_FETCH_PER_SOURCE || 8),
         maxArticlesPerSource: Number(process.env.CRAWLER_MAX_ARTICLES_PER_SOURCE || 3),
     },
 };

@@ -400,8 +400,10 @@ Yêu cầu bắt buộc:
 - Mỗi <h2> cần có giá trị thông tin cụ thể (không đặt tiêu đề “màu mè”).
 - Có thể dùng <h3>, <ul>/<li> khi cần để tăng khả năng quét nhanh.
 - Giải thích ngắn gọn “ý nghĩa thực tế” cho người đọc Việt (ảnh hưởng gì, cần làm gì).
-- Độ dài mục tiêu: tương đương bài gốc; nếu nguồn ngắn thì chấp nhận bài ngắn nhưng phải đầy đủ ý.
+- Độ dài mục tiêu: KHÔNG ngắn hơn nguồn nếu có thể tự nhiên; với nguồn ngắn vẫn phải đạt tối thiểu 2,800-3,800 ký tự để đủ chiều sâu.
 - Tránh lặp ý, tránh kéo dài bằng câu văn chung chung.
+- Bố cục tối thiểu: 5-7 mục <h2> (khi nguồn đủ dữ liệu), mỗi mục có 2-4 đoạn <p> giàu thông tin.
+- Có 1 phần riêng về tác động thực tế/việc cần làm cho người đọc Việt.
 - Dùng HTML tags: <h1>, <h2>, <h3>, <p>, <strong>, <em>, <ul>, <li>, <blockquote>.
 ${securityNewsMode ? '- Nếu là Security/News: phải bao phủ đầy đủ các mục có trong nguồn: tác nhân, kỹ thuật/tactic, CVE/version bị ảnh hưởng, timeline/campaign, IoC/chỉ dấu, khuyến nghị giảm thiểu.' : ''}
 - Chỉ trả về HTML thuần, không code fence, không thêm <html>/<head>/<body>.`;
@@ -423,12 +425,16 @@ ${rewritePrompt}`);
 
     // If content is too short relative to source, ask for fuller coverage without hallucination
     const sourceLen = (article.articleBody || '').length;
-    const ratioFloor = securityNewsMode && sourceLen > 3000 ? 0.98 : 0.9;
-    const absoluteMinLen = sourceLen > 9000 ? 9000
-        : sourceLen > 6000 ? 7000
-        : sourceLen > 3500 ? 5500
-        : sourceLen > 2000 ? 4200
-        : 3000;
+    const ratioFloor = securityNewsMode
+        ? (sourceLen > 3000 ? 0.98 : 0.95)
+        : (sourceLen > 2500 ? 1.0 : 0.95);
+
+    const absoluteMinLen = sourceLen > 12000 ? 11000
+        : sourceLen > 8000 ? 8500
+        : sourceLen > 5000 ? 6500
+        : sourceLen > 3000 ? 5000
+        : sourceLen > 1800 ? 3800
+        : 2800;
 
     const minTargetLen = Math.max(
         absoluteMinLen,
@@ -436,7 +442,7 @@ ${rewritePrompt}`);
     );
 
     if (rewrittenContent.length < minTargetLen && sourceLen > 1200) {
-        const maxExpandAttempts = sourceLen > 2000 ? 2 : 1;
+        const maxExpandAttempts = sourceLen > 2500 ? 3 : 2;
 
         for (let attempt = 1; attempt <= maxExpandAttempts && rewrittenContent.length < minTargetLen; attempt++) {
             console.log(`[Rewrite] Content còn ngắn (${rewrittenContent.length}), mở rộng lần ${attempt}/${maxExpandAttempts} (target ~${minTargetLen}, floor ${ratioFloor})...`);
@@ -449,6 +455,8 @@ Ràng buộc:
 - Không thêm thông tin ngoài nguồn.
 - Không lặp ý để câu chữ dài giả tạo.
 - Mỗi ý quan trọng trong nguồn cần xuất hiện rõ trong bản viết lại.
+- Bố cục 5-7 mục <h2> (nếu dữ liệu nguồn cho phép), mỗi mục có 2-4 đoạn giải thích cụ thể.
+- Bắt buộc có 1 mục về tác động thực tế + việc người đọc nên làm.
 - Ưu tiên tăng chiều sâu giải thích thay vì thêm “văn hoa”.
 - Giữ HTML sạch, dễ đọc.
 ${securityNewsMode ? '- Đây là bài Security/News: bắt buộc giữ đủ phần kỹ thuật (CVE/phiên bản bị ảnh hưởng, cách tấn công, tác động, IOC/khuyến nghị nếu nguồn có), không bỏ ý quan trọng.' : '- Bài không thuộc security/news: bổ sung ngữ cảnh, ví dụ ứng dụng và phân tích lợi-hại để tăng chiều sâu.'}
@@ -581,6 +589,32 @@ ${rewrittenContent}`;
             rewrittenContent = await callOpenClaw(`${systemPrompt}\n\n${patchPrompt}`);
             rewrittenContent = normalizeGeneratedContent(rewrittenContent);
         }
+    }
+
+    // Final depth pass for non-security posts if output is still short
+    if (!securityNewsMode && sourceLen > 2000 && rewrittenContent.length < minTargetLen) {
+        console.log(`[Rewrite] Non-security vẫn ngắn (${rewrittenContent.length}/${minTargetLen}), chạy depth pass bổ sung mục thiếu...`);
+
+        const depthPrompt = `Bài hiện tại vẫn chưa đạt độ sâu mong muốn. Hãy tạo bản HTML hoàn chỉnh hơn dựa trên nguồn, tập trung BỔ SUNG phần còn thiếu.
+
+Mục tiêu:
+- Đạt tối thiểu ~${minTargetLen} ký tự HTML.
+- Ưu tiên thêm ngữ cảnh, nguyên nhân, tác động, và góc nhìn ứng dụng thực tế.
+
+Ràng buộc:
+- Không bịa dữ kiện ngoài nguồn.
+- Tránh lặp câu hoặc viết dài hình thức.
+- Giữ cấu trúc rõ: mở bài ngắn, thân bài theo cụm ý, kết luận có hành động gợi ý.
+- Trả về HTML fragment sạch.
+
+Nguồn:
+${article.articleBody}
+
+Bài hiện tại:
+${rewrittenContent}`;
+
+        rewrittenContent = await callOpenClaw(`${systemPrompt}\n\n${depthPrompt}`);
+        rewrittenContent = normalizeGeneratedContent(rewrittenContent);
     }
 
     // Step 2: Generate Vietnamese title
