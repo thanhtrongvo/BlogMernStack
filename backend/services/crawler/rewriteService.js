@@ -1,7 +1,7 @@
 const config = require('./config');
 
 /**
- * Rewrite article content using OpenClaw OpenAI-compatible endpoint.
+ * Rewrite article content using Ollama with model fallback.
  */
 
 /**
@@ -12,47 +12,74 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+function isLimitLikeError(error) {
+    const msg = (error?.message || '').toLowerCase();
+    return (
+        msg.includes('429') ||
+        msg.includes('rate limit') ||
+        msg.includes('quota') ||
+        msg.includes('too many requests') ||
+        msg.includes('overloaded') ||
+        msg.includes('capacity') ||
+        msg.includes('temporarily unavailable') ||
+        msg.includes('timeout')
+    );
+}
+
+async function callOllama(prompt, model) {
+    const response = await fetch(`${config.ollama.host}/api/generate`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            model,
+            prompt,
+            stream: false,
+            options: {
+                temperature: config.ollama.temperature,
+            },
+        }),
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Ollama error (${model}): ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    const text = data?.response?.trim() || '';
+    if (!text) {
+        throw new Error(`Ollama error (${model}): empty response`);
+    }
+
+    return text;
+}
+
 /**
- * Call OpenClaw Chat Completions API
- * @param {string} prompt - Prompt content
- * @returns {Promise<string>} Generated response
+ * Call rewrite model with primary+fallback strategy
+ * Primary: gemma4:31b-cloud
+ * Fallback on limit/capacity: gemma4:e4b (local)
  */
 async function callOpenClaw(prompt) {
+    const primary = config.ollama.primaryModel;
+    const fallback = config.ollama.fallbackModel;
+
     try {
-        const headers = {
-            'Content-Type': 'application/json',
-        };
-
-        if (config.openclaw.token) {
-            headers.Authorization = `Bearer ${config.openclaw.token}`;
-        }
-
-        if (config.openclaw.backendModel) {
-            headers['x-openclaw-model'] = config.openclaw.backendModel;
-        }
-
-        const response = await fetch(`${config.openclaw.host}/v1/chat/completions`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({
-                model: config.openclaw.model,
-                stream: false,
-                messages: [
-                    { role: 'user', content: prompt }
-                ],
-                temperature: 0.7,
-            }),
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`OpenClaw API error: ${response.status} - ${errorText}`);
-        }
-
-        const data = await response.json();
-        return data?.choices?.[0]?.message?.content?.trim() || '';
+        return await callOllama(prompt, primary);
     } catch (error) {
-        console.error('[Rewrite] OpenClaw API error:', error.message);
+        console.error(`[Rewrite] Primary model failed (${primary}):`, error.message);
+
+        if (fallback && fallback !== primary && isLimitLikeError(error)) {
+            console.log(`[Rewrite] Fallback to local model: ${fallback}`);
+            try {
+                return await callOllama(prompt, fallback);
+            } catch (fallbackError) {
+                console.error(`[Rewrite] Fallback model failed (${fallback}):`, fallbackError.message);
+                throw fallbackError;
+            }
+        }
+
         throw error;
     }
 }
@@ -596,7 +623,7 @@ ${descPrompt}`)).trim().replace(/^["']|["']$/g, '');
  * @returns {Promise<Array>} Array of rewritten articles
  */
 async function rewriteAllArticles(articles) {
-    console.log(`[Rewrite] Rewriting ${articles.length} articles using OpenClaw model ${config.openclaw.model}...`);
+    console.log(`[Rewrite] Rewriting ${articles.length} articles using Ollama primary=${config.ollama.primaryModel}, fallback=${config.ollama.fallbackModel}...`);
     const rewritten = [];
     const delayBetweenArticles = 5000; // 5 seconds between articles to avoid rate limits
 

@@ -8,7 +8,15 @@ module.exports = {
         baseUrl: 'https://api.zyte.com/v1/extract',
     },
 
-    // OpenClaw rewrite API (OpenAI-compatible)
+    // Ollama rewrite API
+    ollama: {
+        host: process.env.OLLAMA_HOST || 'http://127.0.0.1:11434',
+        primaryModel: process.env.OLLAMA_PRIMARY_MODEL || 'gemma4:31b-cloud',
+        fallbackModel: process.env.OLLAMA_FALLBACK_MODEL || 'gemma4:e4b',
+        temperature: Number(process.env.OLLAMA_TEMPERATURE || 0.7),
+    },
+
+    // Legacy OpenClaw config kept for backward compatibility
     openclaw: {
         host: process.env.OPENCLAW_HOST || 'http://127.0.0.1:18789',
         token: process.env.OPENCLAW_TOKEN || '',
