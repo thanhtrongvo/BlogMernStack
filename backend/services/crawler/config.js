@@ -39,5 +39,6 @@ module.exports = {
         minBodyLengthForRewrite: Number(process.env.CRAWLER_MIN_BODY_LEN || 500),
         minAcceptableBodyLength: Number(process.env.CRAWLER_MIN_ACCEPTABLE_BODY_LEN || 300),
         maxDetailFetchPerSource: Number(process.env.CRAWLER_MAX_DETAIL_FETCH_PER_SOURCE || 5),
+        maxArticlesPerSource: Number(process.env.CRAWLER_MAX_ARTICLES_PER_SOURCE || 3),
     },
 };
