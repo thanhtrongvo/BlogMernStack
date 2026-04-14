@@ -71,6 +71,27 @@ function isLikelyNoiseUrl(url = '') {
     return blockedPatterns.some((p) => u.includes(p));
 }
 
+function isLikelyBadArticle(normalized) {
+    const headline = (normalized?.headline || '').toString().trim();
+    const body = (normalized?.articleBody || '').toString().trim();
+
+    if (!headline || /^untitled$/i.test(headline)) return true;
+    if (headline.length < 12 && body.length < 800) return true;
+
+    const bannedHeadlinePatterns = [
+        /^untitled$/i,
+        /^no title$/i,
+        /^404/i,
+        /^page not found/i,
+        /^forbidden/i,
+        /^access denied/i,
+    ];
+
+    if (bannedHeadlinePatterns.some((re) => re.test(headline))) return true;
+
+    return false;
+}
+
 /**
  * Normalize one Zyte article payload into internal shape
  */
@@ -125,6 +146,10 @@ function parseArticles(zyteResponse, source) {
         const url = normalized.sourceUrl;
 
         if (!url || isLikelyNoiseUrl(url)) {
+            continue;
+        }
+
+        if (isLikelyBadArticle(normalized)) {
             continue;
         }
 
