@@ -12,6 +12,7 @@ import {
   Footer,
 } from "../shared/components";
 import { AuthProvider } from "../shared/contexts";
+import AboutPage from "../pages/AboutPage";
 
 import "../styles/App.css";
 import { useEffect } from "react";
@@ -51,6 +52,7 @@ function App() {
           <Route path="/admin/*" element={<AdminDashboard />} />
           <Route path="/blog/*" element={<BlogRoutes />} />
           <Route path="/category/*" element={<CategoryRoutes />} />
+          <Route path="/about" element={<AboutPage />} />
           <Route path="/*" element={<FrontendLayout />} />
         </Routes>
         <Toaster />

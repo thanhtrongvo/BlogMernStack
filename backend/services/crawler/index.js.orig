@@ -24,7 +24,7 @@ async function runCrawlPipeline() {
     console.log(`[Pipeline] Starting Crawl-Rewrite-Publish pipeline`);
     console.log(`[Pipeline] Time: ${new Date().toISOString()}`);
     console.log(`[Pipeline] Sources: ${sources.length}`);
-    console.log(`[Pipeline] Rewrite model: ${config.ollama?.primaryModel || config.openclaw.model}`);
+    console.log(`[Pipeline] Ollama model: ${config.ollama.model}`);
     console.log('='.repeat(60));
 
     const result = {
@@ -42,17 +42,7 @@ async function runCrawlPipeline() {
         const articles = await crawlAllSources(sources);
         result.crawled = articles.length;
 
-        const maxPerSource = config.crawler.maxArticlesPerSource || 3;
-        const sourceCount = {};
-        const filteredArticles = articles.filter(article => {
-            const sourceName = (article.metadata && article.metadata.source) || article.sourceCategory || article.sourceUrl || 'unknown';
-            sourceCount[sourceName] = (sourceCount[sourceName] || 0) + 1;
-            return sourceCount[sourceName] <= maxPerSource;
-        });
-        
-        console.log(`[Pipeline] Limited to ${filteredArticles.length} articles (max ${maxPerSource} per source).`);
-
-        if (filteredArticles.length === 0) {
+        if (articles.length === 0) {
             console.log('[Pipeline] No new articles found. Exiting.');
             result.duration = Date.now() - startTime;
             return result;
@@ -60,7 +50,7 @@ async function runCrawlPipeline() {
 
         // Step 2: REWRITE
         console.log('\n✍️  [Step 2/3] Rewriting articles with AI...');
-        const rewritten = await rewriteAllArticles(filteredArticles);
+        const rewritten = await rewriteAllArticles(articles);
         result.rewritten = rewritten.length;
 
         if (rewritten.length === 0) {

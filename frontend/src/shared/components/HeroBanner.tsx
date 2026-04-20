@@ -29,22 +29,20 @@ const HeroBanner = ({ onSearch }: { onSearch: (term: string) => void }) => {
         {/* Badge */}
         <div className="inline-flex items-center gap-2 bg-slate-100 rounded-full px-4 py-2 mb-8">
           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-          <span className="text-slate-600 text-sm font-medium">Blog về công nghệ & tự động hóa</span>
+          <span className="text-slate-600 text-sm font-medium">Khám phá kiến thức mới mỗi ngày</span>
         </div>
 
         {/* Main Title */}
         <h1 className="text-4xl md:text-6xl font-bold text-slate-900 mb-6 leading-tight tracking-tight">
-          Chia sẻ kiến thức
+          Nền tảng chia sẻ
           <br />
-          <span className="text-blue-600">AI & Automation</span>
+          <span className="text-blue-600">Kiến thức & Kỹ năng</span>
         </h1>
 
         {/* Description */}
         <p className="text-lg md:text-xl text-slate-600 max-w-2xl mx-auto mb-10 leading-relaxed">
-          Ứng dụng AI vào thực tiễn, tự động hóa quy trình với 
-          <span className="font-semibold text-slate-800"> Make.com </span>và
-          <span className="font-semibold text-slate-800"> N8N</span>. 
-          Những mẹo giúp bạn làm việc hiệu quả hơn.
+          Nơi cập nhật tin tức công nghệ mới nhất, chia sẻ thủ thuật hữu ích và 
+          những góc nhìn sâu sắc từ các bài viết chất lượng.
         </p>
 
         {/* Search Bar */}
@@ -69,10 +67,10 @@ const HeroBanner = ({ onSearch }: { onSearch: (term: string) => void }) => {
         {/* Quick Links */}
         <div className="flex flex-wrap justify-center gap-3">
           {[
-            { label: "AI & ChatGPT", href: "/category/ai" },
-            { label: "Make.com", href: "/category/make" },
-            { label: "N8N", href: "/category/n8n" },
-            { label: "Tips & Tricks", href: "/category/tips" },
+            { label: "Tin Tức Mới", href: "/category/tin-tuc-69cbbd742be03fe0c383f064" },
+            { label: "Học Tập", href: "/category/hoc-tap-69cbbd742be03fe0c383f061" },
+            { label: "Thủ Thuật", href: "/category/thu-thuat-69cbbd742be03fe0c383f062" },
+            { label: "Kể Chuyện", href: "/category/ke-chuyen-69cbbd742be03fe0c383f063" },
           ].map((item) => (
             <Link
               key={item.label}

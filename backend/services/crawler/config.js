@@ -8,12 +8,21 @@ module.exports = {
         baseUrl: 'https://api.zyte.com/v1/extract',
     },
 
+    // Firecrawl API
+    firecrawl: {
+        apiKey: process.env.FIRECRAWL_API_KEY || '',
+        baseUrl: 'https://api.firecrawl.dev/v1',
+    },
+
     // Ollama rewrite API
     ollama: {
         host: process.env.OLLAMA_HOST || 'http://127.0.0.1:11434',
         primaryModel: process.env.OLLAMA_PRIMARY_MODEL || 'gemma4:31b-cloud',
         fallbackModel: process.env.OLLAMA_FALLBACK_MODEL || 'gemma4:e4b',
         temperature: Number(process.env.OLLAMA_TEMPERATURE || 0.7),
+        topP: Number(process.env.OLLAMA_TOP_P || 0.9),
+        // 9/4-style long-form output needs a larger generation budget.
+        numPredict: Number(process.env.OLLAMA_NUM_PREDICT || 4096),
     },
 
     // Legacy OpenClaw config kept for backward compatibility
@@ -41,5 +50,6 @@ module.exports = {
         minAcceptableBodyLength: Number(process.env.CRAWLER_MIN_ACCEPTABLE_BODY_LEN || 700),
         maxDetailFetchPerSource: Number(process.env.CRAWLER_MAX_DETAIL_FETCH_PER_SOURCE || 8),
         maxArticlesPerSource: Number(process.env.CRAWLER_MAX_ARTICLES_PER_SOURCE || 3),
+        minPublishContentLength: Number(process.env.CRAWLER_MIN_PUBLISH_CONTENT_LEN || 2500),
     },
 };

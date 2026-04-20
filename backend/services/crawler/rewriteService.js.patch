@@ -1,0 +1,14 @@
+--- backend/services/crawler/rewriteService.js
++++ backend/services/crawler/rewriteService.js
+@@ -99,6 +99,14 @@
+     let rewrittenContent = await callOllama(`${systemPrompt}
+ 
+ ${rewritePrompt}`);
++
++    // Generate category from content
++    const categoryPrompt = `Dựa vào nội dung bài viết dưới đây, hãy phân loại nó vào MỘT trong các danh mục sau: "Học Tập", "Thủ Thuật", "Kể Chuyện", "Tin Tức". Chỉ trả về tên danh mục duy nhất, không giải thích.
++    Tiêu đề: ${article.headline}`;
++    
++    const suggestedCategory = (await callOllama(`${systemPrompt}\n\n${categoryPrompt}`)).trim();
++    article.sourceCategory = suggestedCategory;
++    

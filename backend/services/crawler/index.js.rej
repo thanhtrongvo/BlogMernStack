@@ -1,0 +1,29 @@
+--- index.js
++++ index.js
+@@ -35,6 +35,14 @@
+ 
+     // Step 1: Crawl URLs
+     const articles = await crawlAllSources(sources);
+-    if (articles.length === 0) {
++    
++    // Limit to 4 articles per source
++    const sourceCount = {};
++    const filteredArticles = articles.filter(article => {
++        sourceCount[article.metadata.source] = (sourceCount[article.metadata.source] || 0) + 1;
++        return sourceCount[article.metadata.source] <= 4;
++    });
++    
++    if (filteredArticles.length === 0) {
+         console.log('[Pipeline] No new articles found. Exiting.');
+         process.exit(0);
+--- /dev/null
++++ /dev/null
+@@ -42,7 +50,7 @@
+     // Step 2: Rewrite & Translate using AI
+-    const rewrittenArticles = await rewriteAllArticles(articles);
++    const rewrittenArticles = await rewriteAllArticles(filteredArticles);
+ 
+     // Step 3: Publish to DB
+ 
+ 
+ 

@@ -10,23 +10,43 @@
         "category": "Tin Tức"
     },
     {
-        "name": "Ars Technica",
-        "url": "https://arstechnica.com/",
+        "name": "MakeUseOf",
+        "url": "https://www.makeuseof.com/category/windows/",
         "category": "Thủ Thuật"
     },
     {
-        "name": "InfoQ",
-        "url": "https://www.infoq.com/",
+        "name": "MakeUseOf - Mac",
+        "url": "https://www.makeuseof.com/category/mac/",
+        "category": "Thủ Thuật"
+    },
+    {
+        "name": "How-To Geek",
+        "url": "https://www.howtogeek.com/category/computer/",
+        "category": "Thủ Thuật"
+    },
+    {
+        "name": "Medium - Technology",
+        "url": "https://medium.com/tag/technology",
         "category": "Học Tập"
     },
     {
-        "name": "DEV Community",
-        "url": "https://dev.to/",
+        "name": "Medium - Programming",
+        "url": "https://medium.com/tag/programming",
+        "category": "Học Tập"
+    },
+    {
+        "name": "freeCodeCamp",
+        "url": "https://www.freecodecamp.org/news/",
         "category": "Học Tập"
     },
     {
         "name": "Smashing Magazine",
         "url": "https://www.smashingmagazine.com/articles/",
-        "category": "Thủ Thuật"
+        "category": "Học Tập"
+    },
+    {
+        "name": "Lifehack",
+        "url": "https://www.lifehack.org/",
+        "category": "Kể Chuyện"
     }
 ]

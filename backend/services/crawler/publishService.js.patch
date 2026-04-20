@@ -1,0 +1,37 @@
+--- publishService.js
++++ publishService.js
+@@ -107,17 +107,18 @@
+     const categoryMap = await getCategoryMap();
+ 
+     const normalize = (v) => (v || '').toString().toLowerCase().trim();
+-    const sourceCategory = normalize(article.sourceCategory);
++    const sourceCategory = article.sourceCategory || '';
++    const sourceCategoryNorm = normalize(sourceCategory);
+ 
+     const aliases = {
+-        ai: ['ai', 'artificial intelligence', 'machine learning', 'ml'],
+-        'tin tức': ['tin tuc', 'news', 'technology', 'tech'],
+-        'học tập': ['hoc tap', 'guide', 'tutorial', 'how-to'],
+-        'thủ thuật': ['thu thuat', 'tips', 'tricks'],
+-        'kể chuyện': ['ke chuyen', 'story', 'opinion', 'insight'],
++        'ai': ['ai', 'artificial intelligence', 'machine learning', 'ml'],
++        'tin tức': ['tin tuc', 'news', 'technology', 'tech', 'tin tức'],
++        'học tập': ['hoc tap', 'guide', 'tutorial', 'how-to', 'học tập'],
++        'thủ thuật': ['thu thuat', 'tips', 'tricks', 'thủ thuật'],
++        'kể chuyện': ['ke chuyen', 'story', 'opinion', 'insight', 'kể chuyện'],
+     };
+ 
+     // Direct match by category name
+     for (const [name, id] of categoryMap.entries()) {
+-        if (sourceCategory && sourceCategory === name) return id;
++        if (sourceCategoryNorm && sourceCategoryNorm === name) return id;
++        if (sourceCategory && sourceCategory.toLowerCase() === name.toLowerCase()) return id;
+     }
+ 
+     // Alias match -> existing category name in DB
+     for (const [catName, keys] of Object.entries(aliases)) {
+-        if (keys.includes(sourceCategory) && categoryMap.has(catName)) {
++        if (keys.includes(sourceCategoryNorm) && categoryMap.has(catName)) {
+             return categoryMap.get(catName);
+         }
+     }

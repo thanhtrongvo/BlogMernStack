@@ -1,0 +1,41 @@
+Hackers gained access to an API for the CPUID project and changed the download links on the official website to serve malicious executables for the popular CPU-Z and HWMonitor tools.
+
+The two utilities have millions of users who rely on them for tracking the physical health of internal computer hardware and for comprehensive specifications of a system.
+
+Users who downloaded either tool reported on Reddit recently that the official download portal points to the Cloudflare R2 storage service and fetches a trojanized version of HWiNFO, another diagnostic and monitoring tool from a different developer.
+
+The name of the malicious file is HWiNFO_Monitor_Setup, and running it launches a Russian installer with an Inno Setup wrapper, which is atypical and highly suspicious.
+
+Users reported that downloading the clean hwmonitor_1.63.exe from the direct URL was still possible, indicating that the original binaries were intact, but the distribution links appear to have been poisoned.
+
+The externalized download chain was also confirmed by Igor’s Labs and @vxunderground, who reported that a fairly advanced loader using known techniques, tactics, and procedures (TTPs) is involved.
+
+“As I began poking this with a stick, I discovered this is not your typical run-of-the-mill malware,” stated vxunderground.
+
+“This malware is deeply trojanized, distributes from a compromised domain (cpuid-dot-com), performs file masquerading, is multi-staged, operates (almost) entirely in-memory, and uses some interesting methods to evade EDRs and/or AVs such as proxying NTDLL functionality from a .NET assembly.”
+
+The researcher claims that the same threat group targeted users of the FileZilla FTP solution last month, suggesting that the attacker is focusing on widely used utilities.
+
+The downloaded ZIP is flagged by 20 antivirus engines on VirusTotal, although not clearly identified. Some classify it as Tedy Trojan, and others as Artemis Trojan.
+
+Some researchers on Virustotal say that the fake HWiNFO variant is an infostealer malware.
+
+CPUID said a secondary side API was compromised for approximately six hours between April 9 and April 10, causing the main website to randomly display malicious links (signed original files were not compromised).
+
+Kaspersky says compromise lasted between April 9, 15:00 UTC and April 10, 10:00 UTC and attacker distributed malicious versions for:
+- CPU-Z (2.19)
+- HWMonitor Pro (1.57)
+- HWMonitor (1.63)
+- PerfMonitor (2.04)
+
+Modified variants included a legitimate signed executable and a malicious DLL named CRYPTBASE.dll used for DLL sideloading.
+
+Kaspersky says the malicious DLL handles C2 connection and payload execution, performing anti-sandbox checks before connecting.
+
+Attacker used same C2 address and configuration observed in a March campaign using fake FileZilla site for malicious downloads.
+
+Final payload was STX RAT with infostealer capabilities.
+
+Kaspersky visibility indicates more than 150 users downloaded malicious variants, including organizations in retail, manufacturing, consulting, telecommunications, and agriculture, mostly in Brazil, Russia, and China.
+
+CPUID says issue has been fixed and clean versions are now served.

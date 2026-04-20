@@ -19,9 +19,10 @@ const Footer = () => {
   ];
 
   const categories = [
-    { label: "AI & ChatGPT", href: "/category/ai" },
-    { label: "Make.com", href: "/category/make" },
-    { label: "N8N", href: "/category/n8n" },
+    { label: "Tin Tức", href: "/category/tin-tuc-69cbbd742be03fe0c383f064" },
+    { label: "Học Tập", href: "/category/hoc-tap-69cbbd742be03fe0c383f061" },
+    { label: "Thủ Thuật", href: "/category/thu-thuat-69cbbd742be03fe0c383f062" },
+    { label: "Kể Chuyện", href: "/category/ke-chuyen-69cbbd742be03fe0c383f063" },
   ];
 
   return (
@@ -30,11 +31,14 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="md:col-span-1">
-            <Link to="/" className="inline-block mb-4">
-              <h2 className="text-xl font-bold">Go Blog</h2>
+            <Link to="/" className="inline-block mb-4 group flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
+                <span className="text-white font-bold text-lg leading-none">G</span>
+              </div>
+              <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-300">Go Blog</h2>
             </Link>
             <p className="text-slate-400 text-sm leading-relaxed mb-4">
-              Blog chia sẻ về ứng dụng AI, tự động hóa với Make.com và N8N.
+              Nền tảng chia sẻ kiến thức công nghệ, thủ thuật hữu ích và cập nhật tin tức công nghệ mới nhất.
             </p>
             <div className="flex gap-3">
               {socialLinks.map((social) => (

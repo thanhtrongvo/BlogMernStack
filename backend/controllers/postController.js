@@ -5,7 +5,14 @@ const Category = require('../models/Category');
 
 exports.getAllPosts = async (req, res) => {
     try {
-        const posts = await Post.find().populate('category', 'name');
+        let query = Post.find();
+        
+        // Handle sorting if provided in query string (e.g. ?sort=-createdAt)
+        if (req.query.sort) {
+            query = query.sort(req.query.sort);
+        }
+        
+        const posts = await query.populate('category', 'name');
         res.status(200).json(posts);
     } catch (error) {
         console.error('Error fetching posts:', error);

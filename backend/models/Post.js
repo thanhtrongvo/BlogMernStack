@@ -22,7 +22,7 @@ const PostSchema = new mongoose.Schema({
     },
     image : {
         type: String,
-        required: true,
+        default: 'https://via.placeholder.com/800x400.png?text=No+Image+Available',
     },
     createdAt: {    
         type: Date,

@@ -170,7 +170,7 @@ export const uploadAPI = {
 // Posts API methods
 export const postsAPI = {
   getAllPosts: async () => {
-    return fetchAPI('/api/posts', {
+    return fetchAPI('/api/posts?sort=-createdAt', {
       requireAuth: false,
     });
   },

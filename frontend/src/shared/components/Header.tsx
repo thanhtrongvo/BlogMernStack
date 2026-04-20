@@ -53,8 +53,11 @@ const Header = () => {
     <header className="sticky top-0 z-30 bg-white shadow-md">
       <div className="container mx-auto flex justify-between items-center py-4 px-4 md:px-6 border-b border-gray-200 bg-gradient-to-r from-white to-gray-50 relative">
         {/* Logo */}
-        <Link to="/" className="z-10">
-          <h1 className="font-bold text-xl md:text-2xl bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-600">
+        <Link to="/" className="z-10 group flex items-center gap-2">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-md group-hover:scale-105 group-hover:shadow-lg transition-all duration-300">
+            <span className="text-white font-bold text-xl leading-none">G</span>
+          </div>
+          <h1 className="font-extrabold text-xl md:text-2xl bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-700 tracking-tight">
             Go Blog
           </h1>
         </Link>

@@ -1,0 +1,27 @@
+--- index.js
++++ index.js
+@@ -43,15 +43,23 @@
+         console.log('\n📡 [Step 1/3] Crawling articles from sources...');
+         const articles = await crawlAllSources(sources);
+         result.crawled = articles.length;
+ 
+-        if (articles.length === 0) {
++        const sourceCount = {};
++        const filteredArticles = articles.filter(article => {
++            sourceCount[article.metadata.source] = (sourceCount[article.metadata.source] || 0) + 1;
++            return sourceCount[article.metadata.source] <= 4;
++        });
++        
++        console.log(`[Pipeline] Limited to ${filteredArticles.length} articles (max 4 per source).`);
++
++        if (filteredArticles.length === 0) {
+             console.log('[Pipeline] No new articles found. Exiting.');
+             result.duration = Date.now() - startTime;
+             return result;
+         }
+ 
+         // Step 2: REWRITE
+         console.log('\n✍️  [Step 2/3] Rewriting articles with AI...');
+-        const rewritten = await rewriteAllArticles(articles);
++        const rewritten = await rewriteAllArticles(filteredArticles);
+         result.rewritten = rewritten.length;
