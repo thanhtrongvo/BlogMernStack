@@ -1,11 +1,7 @@
 const User = require("../models/User");
 
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
-const dotenv = require("dotenv");
+const bcrypt = require("bcryptjs");
 
-dotenv.config();
-const auth = require("../middleware/auth");
 
 exports.getAllUsers = async (req, res) => {
   try {

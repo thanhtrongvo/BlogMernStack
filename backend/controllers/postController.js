@@ -32,6 +32,19 @@ exports.getPostById = async (req, res) => {
     }
 }
 
+exports.getPostBySlug = async (req, res) => {
+    try {
+        const post = await Post.findOne({ slug: req.params.slug }).populate('category', 'name description');
+        if (!post) {
+            return res.status(404).json({ message: 'Post not found' });
+        }
+        res.status(200).json(post);
+    } catch (error) {
+        console.error('Error fetching post by slug:', error);
+        res.status(500).json({ message: 'Error fetching post by slug' });
+    }
+}
+
 exports.createPost = async (req, res) => {
     const { title, content, image, category, status = true, slug, sourceUrl, description } = req.body;
 
@@ -84,19 +97,27 @@ exports.createPost = async (req, res) => {
     }
 }
 exports.updatePost = async (req, res) => {
-    const { title, content, image } = req.body;
+    const { title, content, image, category, status, slug, sourceUrl, description } = req.body;
     try {
-        const post = await Post.findByIdAndUpdate(req.params.id, {
-            title,
-            content,
-            image
-        }, { new: true });
+        const updateData = {};
+        if (title !== undefined) updateData.title = title;
+        if (content !== undefined) updateData.content = content;
+        if (image !== undefined) updateData.image = image;
+        if (category !== undefined) updateData.category = category;
+        if (status !== undefined) updateData.status = Boolean(status);
+        if (slug !== undefined) updateData.slug = slug;
+        if (sourceUrl !== undefined) updateData.sourceUrl = sourceUrl;
+        if (description !== undefined) updateData.description = description;
+        updateData.updatedAt = Date.now();
+
+        const post = await Post.findByIdAndUpdate(req.params.id, updateData, { new: true }).populate('category', 'name description');
         if (!post) {
             return res.status(404).json({ message: 'Post not found' });
         }
         res.status(200).json(post);
     } catch (error) {
-        res.status(500).json({ message: 'Error updating post' });
+        console.error('Error updating post:', error);
+        res.status(500).json({ message: 'Error updating post', error: error.message });
     }
 }
 exports.deletePost = async (req, res) => {
@@ -143,7 +164,7 @@ exports.getPostsByCategory = async (req, res) => {
             const normalized = categoryId.toString().trim();
             const category = await Category.findOne({
                 $or: [
-                    { name: new RegExp(`^${normalized}$`, 'i') },
+                    { name: new RegExp(`^${normalized.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
                     { name: normalized }
                 ]
             }).select('_id');

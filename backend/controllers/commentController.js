@@ -2,9 +2,6 @@ const Comment = require('../models/Comment');
 const Post = require('../models/Post');
 const User = require('../models/User');
 
-const auth = require('../middleware/auth');
-const dotenv = require('dotenv');
-dotenv.config();
 
 exports.getAllComments = async (req, res) => { 
     try {
@@ -133,5 +130,39 @@ exports.getCommentsByAuthor = async (req, res) => {
         res.status(200).json(comments);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching comments' });
+    }
+}
+
+exports.approveComment = async (req, res) => {
+    try {
+        const comment = await Comment.findByIdAndUpdate(
+            req.params.id,
+            { status: true, updatedAt: Date.now() },
+            { new: true }
+        );
+        if (!comment) {
+            return res.status(404).json({ message: 'Comment not found' });
+        }
+        res.status(200).json(comment);
+    } catch (error) {
+        console.error('Error approving comment:', error);
+        res.status(500).json({ message: 'Error approving comment' });
+    }
+}
+
+exports.rejectComment = async (req, res) => {
+    try {
+        const comment = await Comment.findByIdAndUpdate(
+            req.params.id,
+            { status: false, updatedAt: Date.now() },
+            { new: true }
+        );
+        if (!comment) {
+            return res.status(404).json({ message: 'Comment not found' });
+        }
+        res.status(200).json(comment);
+    } catch (error) {
+        console.error('Error rejecting comment:', error);
+        res.status(500).json({ message: 'Error rejecting comment' });
     }
 }

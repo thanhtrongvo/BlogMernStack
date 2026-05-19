@@ -6,6 +6,8 @@ const {
   createComment,
   updateComment,
   deleteComment,
+  approveComment,
+  rejectComment,
 } = require("../controllers/commentController");
 const auth = require("../middleware/auth");
 
@@ -15,7 +17,10 @@ route.get("/:id", getCommentById);
 
 route.post("/", createComment);
 route.put("/:id", auth, updateComment);
+route.put("/:id/approve", auth, approveComment);
+route.put("/:id/reject", auth, rejectComment);
 
 route.delete("/:id", auth, deleteComment);
 
 module.exports = route;
+

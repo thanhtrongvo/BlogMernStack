@@ -1,6 +1,5 @@
 const express = require("express");
 const router = express.Router();
-const morgan = require("morgan");
 const auth = require("../middleware/auth");
 const {
   getAllPosts,
@@ -8,15 +7,18 @@ const {
   updatePost,
   deletePost,
   getPostById,
+  getPostBySlug,
   trackPostView,
   getPostsByCategory,
 } = require("../controllers/postController");
 
-// Public routes
+// Public routes — specific paths MUST come before /:id
 router.get("/", getAllPosts);
-router.get("/:id", getPostById); // Removed auth middleware to allow public access
-router.post("/:id/view", trackPostView);
 router.get("/category/:categoryId", getPostsByCategory);
+router.get("/slug/:slug", getPostBySlug);
+router.get("/:id", getPostById);
+router.post("/:id/view", trackPostView);
+
 // Protected routes
 router.post("/", auth, createPost);
 router.put("/:id", auth, updatePost);
@@ -24,3 +26,4 @@ router.delete("/:id", auth, deletePost);
 
 
 module.exports = router;
+
