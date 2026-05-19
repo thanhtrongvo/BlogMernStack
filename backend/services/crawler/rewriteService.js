@@ -36,31 +36,49 @@ async function rewriteArticle(article) {
 
     const rewritePrompt = `${systemPrompt}
     
-Hãy viết lại bài báo sau bằng tiếng Việt theo phong cách blog công nghệ chuyên sâu, hấp dẫn. Định dạng đầu ra là HTML.
+Hãy viết lại bài báo sau bằng tiếng Việt theo phong cách blog công nghệ chuyên sâu, hấp dẫn. Định dạng đầu ra là HTML. LƯU Ý QUAN TRỌNG: TIÊU ĐỀ PHẢI ĐƯỢC DỊCH SANG TIẾNG VIỆT, KHÔNG ĐƯỢC GIỮ NGUYÊN TIẾNG ANH.
 
-Tiêu đề gốc: ${headline}
+Tiêu đề gốc (HÃY DỊCH SANG TIẾNG VIỆT): ${headline}
 
 Nội dung gốc:
 ${articleBody}
 
 Yêu cầu bắt buộc:
+- Tiêu đề (headline) BẮT BUỘC PHẢI DỊCH SANG TIẾNG VIỆT tự nhiên, hấp dẫn, chuẩn SEO.
 - Viết lại hoàn toàn bằng tiếng Việt tự nhiên, không dịch word-by-word
 - Giữ nguyên đầy đủ thông tin kỹ thuật quan trọng, KHÔNG rút gọn quá mức
 - Bài viết phải đủ độ sâu, tối thiểu khoảng 1200 từ (nếu dữ liệu nguồn đủ)
 - Mở bài có hook mạnh: nêu vấn đề, bối cảnh, và lý do người đọc nên quan tâm
 - Triển khai nội dung thành nhiều phần rõ ràng bằng <h2>/<h3>, mỗi phần có giải thích chi tiết + ví dụ thực tế
 - Thêm các điểm thu hút người đọc: so sánh, tình huống sử dụng, tác động thực tế, ưu/nhược điểm, góc nhìn chuyên gia
-- Khi phù hợp, dùng <ul>/<li> để tóm tắt nhanh các ý quan trọng`;
+- Khi phù hợp, dùng <ul>/<li> để tóm tắt nhanh các ý quan trọng
+- CHỈ TRẢ VỀ JSON có cấu trúc sau, không kèm bất kỳ văn bản nào khác:
+{
+  "title": "Tiêu đề đã dịch sang tiếng Việt",
+  "content": "Nội dung bài viết HTML"
+}`;
 
     try {
         // Try primary model
-        let rewrittenContent = await callOllama(rewritePrompt, "gemma4:31b-cloud");
+        let rewrittenData = await callOllama(rewritePrompt, "gemma4:31b-cloud");
+        let parsedData;
+        try {
+            parsedData = JSON.parse(rewrittenData);
+        } catch(e) {
+            // Fallback if model didn't return pure JSON
+            const jsonMatch = rewrittenData.match(/\{[\s\S]*\}/);
+            if(jsonMatch) {
+               parsedData = JSON.parse(jsonMatch[0]);
+            } else {
+               throw new Error("Could not parse JSON from model output");
+            }
+        }
         
         return {
-            title: headline,
-            url: article.url,
+            title: parsedData.title || headline,
+            sourceUrl: article.url || article.sourceUrl,
             source: article.source,
-            content: rewrittenContent,
+            content: parsedData.content || rewrittenData,
             images: article.images || [],
             sourceDate: article.sourceDate
         };
@@ -70,13 +88,24 @@ Yêu cầu bắt buộc:
         
         try {
             // Try fallback model
-            let rewrittenContent = await callOllama(rewritePrompt, "gemma4:e4b");
+            let rewrittenData = await callOllama(rewritePrompt, "gemma4:e4b");
+            let parsedData;
+            try {
+                 parsedData = JSON.parse(rewrittenData);
+            } catch(e) {
+                 const jsonMatch = rewrittenData.match(/\{[\s\S]*\}/);
+                 if(jsonMatch) {
+                    parsedData = JSON.parse(jsonMatch[0]);
+                 } else {
+                    throw new Error("Could not parse JSON from fallback model output");
+                 }
+            }
             
             return {
-                title: headline,
-                url: article.url,
+                title: parsedData.title || headline,
+                sourceUrl: article.url || article.sourceUrl,
                 source: article.source,
-                content: rewrittenContent,
+                content: parsedData.content || rewrittenData,
                 images: article.images || [],
                 sourceDate: article.sourceDate
             };

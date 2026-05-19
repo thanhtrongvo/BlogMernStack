@@ -120,8 +120,9 @@ async function publishArticle(article) {
 
     // Step 3: Prepare payload
     const categoryId = await resolveCategoryId(article);
-    const finalImage = (article.thumbnailUrl && article.thumbnailUrl.trim() !== '') 
-                       ? article.thumbnailUrl 
+    const imageUrl = article.thumbnailUrl || (article.images && article.images[0]) || '';
+    const finalImage = (imageUrl && imageUrl.trim() !== '') 
+                       ? imageUrl 
                        : 'https://placehold.co/800x400?text=No+Image';
 
     const payload = {
